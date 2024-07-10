@@ -156,7 +156,7 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
 def highlight_connectivity(weight):
     """見やすくするために神経結合に強弱をつける
     """
-    return weight
+    return 0.7 * weight
 
 def calc_pos_x(degree):
     return np.cos(np.pi * ((- degree + 90) / 180))
@@ -221,7 +221,8 @@ def format_architecture(architecture):
                     idx_row, idx_col, weights[idx_row, idx_col]
                 ])
     df_edge = pd.DataFrame(
-        list_weights, columns=['var1', 'var2', 'weight']
+        list_weights,
+        columns=['var_to', 'var_from', 'weight']
     )
 
     # カラム
@@ -236,13 +237,17 @@ def format_architecture(architecture):
     return df_node, df_edge, df_column
 
 
-def plot_network(architecture, plot_weight=True):
+def plot_network(architecture,
+                 display_circle=False,
+                 display_weight=True,
+                 display_index=True,
+                 ):
     """ネットワークアーキテクチャを可視化
 
     Parameters
     ----------
     architecture : dict
-    plot_weight : bool
+    display_weight : bool
     """
     df_node, df_edge, df_column = format_architecture(architecture=architecture)
     num_unit = architecture['num_unit']
@@ -250,14 +255,15 @@ def plot_network(architecture, plot_weight=True):
     plt.figure(figsize=(10, 10))
 
     # 円周のプロット
-    degrees = np.linspace(0, 2 * np.pi, 10000)
-    plt.plot(
-        np.cos(degrees), np.sin(degrees),
-        color='black',
-        linestyle='dashed',
-        linewidth=0.5,
-        zorder=0,
-    )
+    if display_circle:
+        degrees = np.linspace(0, 2 * np.pi, 10000)
+        plt.plot(
+            np.cos(degrees), np.sin(degrees),
+            color='black',
+            linestyle='dashed',
+            linewidth=0.5,
+            zorder=0,
+        )
 
     # カラムのプロット
     plt.scatter(
@@ -271,15 +277,15 @@ def plot_network(architecture, plot_weight=True):
     )
 
     # 神経結合
-    if plot_weight:
+    if display_weight:
         for idx, weight in enumerate(df_edge['weight']):
-            x1 = df_node['pos_x_jitter'][df_edge['var1'][idx]]
-            y1 = df_node['pos_y_jitter'][df_edge['var1'][idx]]
-            x2 = df_node['pos_x_jitter'][df_edge['var2'][idx]]
-            y2 = df_node['pos_y_jitter'][df_edge['var2'][idx]]
+            x_to = df_node['pos_x_jitter'][df_edge['var_to'][idx]]
+            y_to = df_node['pos_y_jitter'][df_edge['var_to'][idx]]
+            x_from = df_node['pos_x_jitter'][df_edge['var_from'][idx]]
+            y_from = df_node['pos_y_jitter'][df_edge['var_from'][idx]]
             plt.plot(
-                [x1, x2],
-                [y1, y2],
+                [x_to, x_from],
+                [y_to, y_from],
                 color='black',
                 alpha=highlight_connectivity(weight),
                 # linewidth=highlight_connectivity(weight),
@@ -295,7 +301,7 @@ def plot_network(architecture, plot_weight=True):
         df_tmp['pos_y_jitter'],
         s=60,
         c='white',
-        edgecolors='black',
+        edgecolors='blue',
         marker='o',
         linewidths=0.5,
         zorder=2,
@@ -308,7 +314,7 @@ def plot_network(architecture, plot_weight=True):
         df_tmp['pos_y_jitter'],
         s=60,
         c='white',
-        edgecolors='black',
+        edgecolors='blue',
         marker='^',
         linewidths=0.5,
         zorder=2,
@@ -328,17 +334,18 @@ def plot_network(architecture, plot_weight=True):
     )
 
     # 神経細胞の番号
-    for idx in range(num_unit):
-        plt.text(
-            df_node['pos_x_jitter_large'][idx],
-            df_node['pos_y_jitter_large'][idx],
-            '%d' % (int(df_node['idx'][idx])),
-            size=6,
-            color='black',
-            horizontalalignment='center',
-            verticalalignment='center',  # {'baseline', 'bottom', 'center', 'center_baseline', 'top'}
-            zorder=4,
-        )
+    if display_index:
+        for idx in range(num_unit):
+            plt.text(
+                df_node['pos_x_jitter_large'][idx],
+                df_node['pos_y_jitter_large'][idx],
+                '%d' % (int(df_node['idx'][idx])),
+                size=6,
+                color='black',
+                horizontalalignment='center',
+                verticalalignment='center',  # {'baseline', 'bottom', 'center', 'center_baseline', 'top'}
+                zorder=4,
+            )
 
     # カラムの位置（角度）
     for idx, degree in enumerate(df_column['degree']):
@@ -366,6 +373,6 @@ def plot_weight(architecture):
     """
     plt.figure(figsize=(7, 7))
     plt.pcolor(architecture['weights'], cmap=plt.cm.Blues)
-    plt.xlabel("ニューロンの番号")
-    plt.ylabel("ニューロンの番号")
+    plt.xlabel("シナプス前細胞の番号")
+    plt.ylabel("シナプス後細胞の番号")
     plt.show()
