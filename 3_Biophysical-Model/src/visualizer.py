@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 
 
@@ -148,4 +149,223 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
         for time_plot in time_span:
             plt.vlines(time_plot, -1, num_unit, colors='black', linestyles='dotted')
     plt.title(title)
+    plt.show()
+
+
+
+def highlight_connectivity(weight):
+    """見やすくするために神経結合に強弱をつける
+    """
+    return weight
+
+def calc_pos_x(degree):
+    return np.cos(np.pi * ((- degree + 90) / 180))
+
+def calc_pos_y(degree):
+    return np.sin(np.pi * ((- degree + 90) / 180))
+
+
+def make_jitter_x(df_node):
+    split = np.where(df_node['exc'] == 1, df_node['idx'] % 4 + 1, 0)
+    jitter = np.cos((- (split * 360 / 5) + 90) * (np.pi / 180))
+    return jitter
+
+
+def make_jitter_y(df_node):
+    split = np.where(df_node['exc'] == 1, df_node['idx'] % 4 + 1, 0)
+    jitter = np.sin((- (split * 360 / 5) + 90) * (np.pi / 180))
+    return jitter
+
+
+def format_architecture(architecture):
+    """可視化用にネットワークアーキテクチャを辞書型からデータフレームに変換する
+
+    Parameters
+    ----------
+    architecture : dict
+
+    Returns
+    -------
+    df_node : pd.DataFrame
+        ネットワークの神経細胞に関する情報を保持
+    df_edge : pd.DataFrame
+        ネットワークの神経結合に関する情報を保持
+    df_column : pd.DataFrame
+        ネットワークのカラムに関する情報を保持
+    """
+    scale = 0.06
+    num_unit = architecture['num_unit']
+
+    # 神経細胞
+    df_node = pd.DataFrame({
+        'idx': range(num_unit),
+        'degree': architecture['positions'],
+        'pos_x': calc_pos_x(np.array(architecture['positions'])),
+        'pos_y': calc_pos_y(np.array(architecture['positions'])),
+        'exc': architecture['excitation_binary'],
+        'cue': architecture['positions_cue'],
+    })
+    # print(df_node.loc[:, ['pos_x']] + make_jitter_x(df_node=df_node) * scale)
+    df_node['pos_x_jitter'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale
+    df_node['pos_y_jitter'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale
+    df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale * 1.5
+    df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale * 1.5
+
+    # 神経結合
+    weights = architecture['weights']
+    list_weights = []
+    for idx_row in range(num_unit):
+        for idx_col in range(num_unit):
+            if idx_col < idx_row:
+                list_weights.append([
+                    idx_row, idx_col, weights[idx_row, idx_col]
+                ])
+    df_edge = pd.DataFrame(
+        list_weights, columns=['var1', 'var2', 'weight']
+    )
+
+    # カラム
+    degrees = list(set(architecture['positions']))
+    df_column = pd.DataFrame({
+        'idx': range(len(degrees)),
+        'degree': degrees,
+        'pos_x': calc_pos_x(np.array(degrees)),
+        'pos_y': calc_pos_y(np.array(degrees)),
+    })
+
+    return df_node, df_edge, df_column
+
+
+def plot_network(architecture, plot_weight=True):
+    """ネットワークアーキテクチャを可視化
+
+    Parameters
+    ----------
+    architecture : dict
+    plot_weight : bool
+    """
+    df_node, df_edge, df_column = format_architecture(architecture=architecture)
+    num_unit = architecture['num_unit']
+
+    plt.figure(figsize=(10, 10))
+
+    # 円周のプロット
+    degrees = np.linspace(0, 2 * np.pi, 10000)
+    plt.plot(
+        np.cos(degrees), np.sin(degrees),
+        color='black',
+        linestyle='dashed',
+        linewidth=0.5,
+        zorder=0,
+    )
+
+    # カラムのプロット
+    plt.scatter(
+        df_column.loc[:, ['pos_x']],
+        df_column.loc[:, ['pos_y']],
+        s=2400,
+        c='white',
+        edgecolors='black',
+        marker='s',
+        linewidths=0.5,
+    )
+
+    # 神経結合
+    if plot_weight:
+        for idx, weight in enumerate(df_edge['weight']):
+            x1 = df_node['pos_x_jitter'][df_edge['var1'][idx]]
+            y1 = df_node['pos_y_jitter'][df_edge['var1'][idx]]
+            x2 = df_node['pos_x_jitter'][df_edge['var2'][idx]]
+            y2 = df_node['pos_y_jitter'][df_edge['var2'][idx]]
+            plt.plot(
+                [x1, x2],
+                [y1, y2],
+                color='black',
+                alpha=highlight_connectivity(weight),
+                # linewidth=highlight_connectivity(weight),
+                linewidth=0.2,
+                zorder=1,
+            )
+
+    # 神経細胞のプロット
+    # 興奮性細胞
+    df_tmp = df_node.loc[df_node.loc[:, 'exc'] == 1, :]
+    plt.scatter(
+        df_tmp['pos_x_jitter'],
+        df_tmp['pos_y_jitter'],
+        s=60,
+        c='white',
+        edgecolors='black',
+        marker='o',
+        linewidths=0.5,
+        zorder=2,
+    )
+
+    # 抑制性細胞
+    df_tmp = df_node.loc[df_node.loc[:, 'exc'] == 0, :]
+    plt.scatter(
+        df_tmp['pos_x_jitter'],
+        df_tmp['pos_y_jitter'],
+        s=60,
+        c='white',
+        edgecolors='black',
+        marker='^',
+        linewidths=0.5,
+        zorder=2,
+    )
+
+    # キュー電流
+    df_tmp = df_node.loc[df_node.loc[:, 'cue'] == 1, :]
+    plt.scatter(
+        df_tmp['pos_x_jitter'],
+        df_tmp['pos_y_jitter'],
+        s=60,
+        c='blue',
+        edgecolors='blue',
+        marker='o',
+        linewidths=0.5,
+        zorder=3,
+    )
+
+    # 神経細胞の番号
+    for idx in range(num_unit):
+        plt.text(
+            df_node['pos_x_jitter_large'][idx],
+            df_node['pos_y_jitter_large'][idx],
+            '%d' % (int(df_node['idx'][idx])),
+            size=6,
+            color='black',
+            horizontalalignment='center',
+            verticalalignment='center',  # {'baseline', 'bottom', 'center', 'center_baseline', 'top'}
+            zorder=4,
+        )
+
+    # カラムの位置（角度）
+    for idx, degree in enumerate(df_column['degree']):
+        plt.text(
+            df_column['pos_x'][idx] + 0.09,
+            df_column['pos_y'][idx] - 0.13,
+            '%d' % (int(degree)),
+            size=8,
+            color='blue',
+            horizontalalignment='center',
+            verticalalignment='center',  # {'baseline', 'bottom', 'center', 'center_baseline', 'top'}
+            zorder=4,
+        )
+
+    plt.axis("off")
+    plt.show()
+
+
+def plot_weight(architecture):
+    """重みづけ係数を可視化
+
+    Parameters
+    ----------
+    architecture : dict
+    """
+    plt.figure(figsize=(7, 7))
+    plt.pcolor(architecture['weights'], cmap=plt.cm.Blues)
+    plt.xlabel("ニューロンの番号")
+    plt.ylabel("ニューロンの番号")
     plt.show()
