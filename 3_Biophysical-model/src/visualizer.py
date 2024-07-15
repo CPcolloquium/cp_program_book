@@ -126,7 +126,7 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
     num_unit = spikes.shape[1]
 
     rslt = []
-    for idx_unit in range(num_unit):
+    for idx_unit in range(1, num_unit + 1):
         rslt.extend([
             [t, idx_unit] for t, spike in zip(t_eval, spikes[:, idx_unit])
             if spike == 1
@@ -244,7 +244,7 @@ def plot_network(architecture,
                  size_column=3000,
                  display_circle=False,
                  display_weight=True,
-                 display_index=True,
+                 display_index=False,
                  ):
     """ネットワークアーキテクチャを可視化
 

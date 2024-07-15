@@ -302,33 +302,33 @@ def simulate_network_lif(t_eval, weight):
         # [D-a] 電流を計算
         current_cue_1 = cue_scale * np.random.rand()
         current_syn_1 = weight * spike_2 + weight * spike_3
-        current_1 = current_cue_1 + current_syn_1
+        current_ext_1 = current_cue_1 + current_syn_1
 
         current_cue_2 = cue_scale * np.random.rand()
         current_syn_2 = weight * spike_1 + weight * spike_3
-        current_2 = current_cue_2 + current_syn_2
+        current_ext_2 = current_cue_2 + current_syn_2
 
         current_cue_3 = cue_scale * np.random.rand()
         current_syn_3 = weight * spike_1 + weight * spike_2
-        current_3 = current_cue_3 + current_syn_3
+        current_ext_3 = current_cue_3 + current_syn_3
 
         # [D-b] 膜電位の更新
         potential_1 = calc_lif(
             t=t,
             potential=potential_1,
-            current_ext=current_1,
+            current_ext=current_ext_1,
             last_spike=last_spike_1,
         )
         potential_2 = calc_lif(
             t=t,
             potential=potential_2,
-            current_ext=current_2,
+            current_ext=current_ext_2,
             last_spike=last_spike_2,
         )
         potential_3 = calc_lif(
             t=t,
             potential=potential_3,
-            current_ext=current_3,
+            current_ext=current_ext_3,
             last_spike=last_spike_3,
         )
 
