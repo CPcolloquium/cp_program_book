@@ -193,7 +193,7 @@ def format_architecture(architecture):
     df_column : pd.DataFrame
         ネットワークのカラムに関する情報を保持
     """
-    scale = 0.06
+    scale = 0.08
     num_unit = architecture['num_unit']
 
     # 神経細胞
@@ -208,8 +208,10 @@ def format_architecture(architecture):
     # print(df_node.loc[:, ['pos_x']] + make_jitter_x(df_node=df_node) * scale)
     df_node['pos_x_jitter'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale
     df_node['pos_y_jitter'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale
-    df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale * 1.5
-    df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale * 1.5
+    df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale * 1.6
+    df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale * 1.6
+    # df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale + 0.05
+    # df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale
 
     # 神経結合
     weights = architecture['weights']
@@ -238,6 +240,8 @@ def format_architecture(architecture):
 
 
 def plot_network(architecture,
+                 size_neuron=160,
+                 size_column=3000,
                  display_circle=False,
                  display_weight=True,
                  display_index=True,
@@ -247,7 +251,11 @@ def plot_network(architecture,
     Parameters
     ----------
     architecture : dict
+    size_neuron : int
+    size_column : int
+    display_circle : bool
     display_weight : bool
+    display_index : bool
     """
     df_node, df_edge, df_column = format_architecture(architecture=architecture)
     num_unit = architecture['num_unit']
@@ -269,7 +277,7 @@ def plot_network(architecture,
     plt.scatter(
         df_column.loc[:, ['pos_x']],
         df_column.loc[:, ['pos_y']],
-        s=2400,
+        s=size_column,
         c='white',
         edgecolors='black',
         marker='s',
@@ -299,11 +307,11 @@ def plot_network(architecture,
     plt.scatter(
         df_tmp['pos_x_jitter'],
         df_tmp['pos_y_jitter'],
-        s=60,
+        s=size_neuron,
         c='white',
         edgecolors='blue',
         marker='o',
-        linewidths=0.5,
+        linewidths=1.0,
         zorder=2,
     )
 
@@ -312,11 +320,11 @@ def plot_network(architecture,
     plt.scatter(
         df_tmp['pos_x_jitter'],
         df_tmp['pos_y_jitter'],
-        s=60,
+        s=size_neuron,
         c='white',
         edgecolors='blue',
         marker='^',
-        linewidths=0.5,
+        linewidths=1.0,
         zorder=2,
     )
 
@@ -325,11 +333,11 @@ def plot_network(architecture,
     plt.scatter(
         df_tmp['pos_x_jitter'],
         df_tmp['pos_y_jitter'],
-        s=60,
+        s=size_neuron,
         c='blue',
         edgecolors='blue',
         marker='o',
-        linewidths=0.5,
+        linewidths=1.0,
         zorder=3,
     )
 
@@ -337,10 +345,12 @@ def plot_network(architecture,
     if display_index:
         for idx in range(num_unit):
             plt.text(
-                df_node['pos_x_jitter_large'][idx],
-                df_node['pos_y_jitter_large'][idx],
+                # 神経細胞の外側に表示する場合
+                df_node['pos_x_jitter_large'][idx], df_node['pos_y_jitter_large'][idx],
+                # 神経細胞の中心に表示する場合
+                # df_node['pos_x_jitter'][idx], df_node['pos_y_jitter'][idx],
                 '%d' % (int(df_node['idx'][idx])),
-                size=6,
+                size=7,
                 color='black',
                 horizontalalignment='center',
                 verticalalignment='center',  # {'baseline', 'bottom', 'center', 'center_baseline', 'top'}
@@ -351,7 +361,7 @@ def plot_network(architecture,
     for idx, degree in enumerate(df_column['degree']):
         plt.text(
             df_column['pos_x'][idx] + 0.09,
-            df_column['pos_y'][idx] - 0.13,
+            df_column['pos_y'][idx] - 0.14,
             '%d' % (int(degree)),
             size=8,
             color='blue',

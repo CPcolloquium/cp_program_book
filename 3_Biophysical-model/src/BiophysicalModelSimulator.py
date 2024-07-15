@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt  # 可視化用ライブラリを読み込む
 
 DELTA_T = 0.1  # ステップ幅
 
-V_ACT = 40.0  # 活動電位
-V_LEAK = -65.0  # リーク
+# 積分発火モデル
 E_REST = -65.0  # 静止膜電位
+V_ACT = 40.0  # 活動電位
 V_RESET = -65.0  # リセット電位
 V_INIT = -70.0  # 電位の初期値
 V_THERESHOLD = -55.0  # 発火閾値
@@ -23,10 +23,10 @@ TAU_CA = 5.0
 # 静電容量（キャパシタンス）
 C_LIF = 1.0
 C_NMDA = 1.0 * 1000
-C_EXC = 0.5
-C_INH = 0.2
+C_EXC = 0.5 * 1000
+C_INH = 0.2 * 1000
 
-# 平衡電位
+# ワーキングメモリモデル
 E_LEAK = -70.0
 E_AMPA = 0.0
 E_NMDA = 0.0
@@ -37,7 +37,8 @@ V_NA = -56.0
 
 # 最大コンダクタンス値
 G_MAX_REST = 1.0
-G_MAX_LEAK = 25.0
+G_MAX_LEAK = 25.0  # ワーキングメモリモデルで使用
+G_MAX_LEAK_NMDA = 1.0  # NMDA受容体付き神経細胞で使用
 G_MAX_LEAK_EXC = 25.0
 G_MAX_LEAK_INH = 20.0
 G_MAX_NA = 0.2
@@ -85,8 +86,8 @@ def generate_t_eval(t_max, delta_t=DELTA_T):
 
     Returns
     -------
-    t_eval : np.ndarray
-        評価時刻
+    t_eval : np.ndarray or list
+        評価の対象となる時刻を保存した一次元の配列
     """
     # 最大時刻から最大ステップ数を作成
     step_max = int(t_max / delta_t) + 1
@@ -111,7 +112,7 @@ def solve_differential_equation(dydt, t, y, delta_t=1, method='euler', **kwargs)
     y : numpy.ndarray
         時刻tにおける状態
     delta_t : float
-        時間幅
+        ステップ幅 (ミリ秒)
     method : str
         'euler'の場合オイラー法，'rk4'の場合ルンゲ・クッタ法を使用
     kwargs : dict
@@ -206,8 +207,8 @@ def simulate_lif(t_eval,
 
     Parameters
     ----------
-    t_eval : np.ndarray
-        評価対象の時刻
+    t_eval : np.ndarray or list
+        評価の対象となる時刻を保存した一次元の配列
     current_max : float
         注入電流の最大値
 
@@ -256,6 +257,7 @@ def simulate_lif(t_eval,
         # (E) 計算結果を保存
         results['potential'].append(potential)
         results['current'].append(current)
+        results['spike'].append(spike)
 
     return results
 
@@ -492,7 +494,7 @@ def simulate_conductance(t_eval,
     """
     # (A) シミュレーションの設定
     # 重み付け係数は，値が1の1 x 1の行列とする.
-    # ユニット数は1
+    # 神経細胞数は1
     weights = np.ones((1, 1))
 
     # (B) 初期値の設定
@@ -604,9 +606,9 @@ def differentiate_nmda_unit(t, y, **kwargs):
     # (iv) 電流Iの計算
     f_mg = calc_block_mg(potentials)
     current_nmda = - f_mg * conductances * (potentials - E_NMDA)
-    current_rest = - G_MAX_REST * (potentials - E_REST)
+    current_leak = - G_MAX_LEAK_NMDA * (potentials - E_LEAK)
     current_cue = 1000.0 if t >= 100.0 and t < 150.0 else 0.0
-    current = (current_nmda + current_rest + current_cue) / C_NMDA
+    current = (current_nmda + current_leak + current_cue) / C_NMDA
 
     # (v) 膜電位vの計算（微分）
     dvdt = current
@@ -639,7 +641,7 @@ def simulate_nmda_unit(t_eval,
         コンダクタンスやその微分の変化をリストとして値に保存した辞書
     """
     # (A) シミュレーションの設定
-    # 重み付け係数は，値が1の1 x 1の行列とする. ユニット数は1
+    # 重み付け係数は，値が1の1 x 1の行列とする. 神経細胞数は1
     weights = weight * np.ones((1, 1))
 
     # (B) 初期値の設定
@@ -750,7 +752,7 @@ def init_weights_circle(set_exc,
     """
     num_unit = len(positions)
     num_unit_exc = len(set_exc)
-    num_unit_inh = int(num_unit * 0.2)  # 抑制性ユニットの総数
+    num_unit_inh = int(num_unit * 0.2)  # 抑制性神経細胞の総数
     num_column = num_unit_inh  # カラムの総数
 
     strength_exc2exc, width_exc2exc = WEIGHT_STRENGTH_E2E, WEIGHT_WIDTH_E2E
@@ -823,9 +825,9 @@ def init_weights_circle(set_exc,
 
 def generate_network_architecture(num_unit,
                                   ion=False):
-    # 神経回路のユニット設定
-    num_unit_exc = int(num_unit * 0.8)  # 興奮性ユニットの総数
-    num_unit_inh = int(num_unit * 0.2)  # 抑制性ユニットの総数
+    # 神経細胞の個数の設定
+    num_unit_exc = int(num_unit * 0.8)  # 興奮性神経細胞の総数
+    num_unit_inh = int(num_unit * 0.2)  # 抑制性神経細胞の総数
     num_column = num_unit_inh  # カラムの総数
 
     # np.split()で使用するインデックスのリストを用意
@@ -1036,7 +1038,7 @@ def differentiate_working_memory_lif(t, y, **kwargs):
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
-        (C_EXC * 1000.0 * 1.0 if 100.0 <= t and t <= 200.0 else 0.0) \
+        (C_EXC if 100.0 <= t and t <= 200.0 else 0.0) \
         * architecture['positions_cue'].reshape(-1, 1)
 
     # それぞれの電流をまとめる
@@ -1047,8 +1049,8 @@ def differentiate_working_memory_lif(t, y, **kwargs):
     # (vi) 膜電位vの計算
     # dvdt = current
     dvdt = np.empty_like(potentials)
-    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / (C_EXC * 1000)
-    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / (C_INH * 1000)
+    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / C_EXC
+    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / C_INH
 
     # すべての微分をひとつの配列にまとめる
     dydt = np.hstack([
@@ -1081,10 +1083,10 @@ def simulate_working_memory_lif(t_eval,
     # シードを固定する
     np.random.seed(SEED)
 
-    # 神経回路のユニット設定
-    num_unit = architecture['num_unit']  # ユニットの総数
-    num_unit_exc = architecture['num_unit_exc']  # 興奮性ユニットの総数
-    num_unit_inh = architecture['num_unit_inh']  # 抑制性ユニットの総数
+    # 神経細胞の個数の設定
+    num_unit = architecture['num_unit']  # 神経細胞の総数
+    num_unit_exc = architecture['num_unit_exc']  # 興奮性神経細胞の総数
+    num_unit_inh = architecture['num_unit_inh']  # 抑制性神経細胞の総数
 
     # (B) 初期値の設定
     diff_cond_ampa = np.zeros((
@@ -1128,7 +1130,7 @@ def simulate_working_memory_lif(t_eval,
             n=1, p=0.1, size=potentials.shape
         ) * 7.0
         current_noise_weight = np.where(
-            np.array(architecture['excitation_binary']) == 1, 0.5 * 1, 0.2 * 1.8
+            np.array(architecture['excitation_binary']) == 1, 0.5, 0.36
         ).reshape(current_noise.shape)
         current_noise = 1000 * current_noise_weight * current_noise
 
@@ -1178,47 +1180,57 @@ def simulate_working_memory_lif(t_eval,
 
 # [コラム] ホジキン・ハックスリーモデル
 def calc_alpha_m(V):
-    alpha_m = (0.1 * (V + 40)) / (- np.exp(- 0.1 * (V + 40)) + 1)
+    # alpha_m = (0.1 * (V + 40)) / (- np.exp(- 0.1 * (V + 40)) + 1)
+    alpha_m = (2.5 - 0.1 * V) / (np.exp(2.5 - 0.1 * V) - 1)
     return alpha_m
 
 def calc_beta_m(V):
-    beta_m = 4 * np.exp(- (V + 65) / 18)
+    # beta_m = 4 * np.exp(- (V + 65) / 18)
+    beta_m = 4 * np.exp(- V / 18)
     return beta_m
 
 def calc_alpha_h(V):
-    alpha_h = 0.07 * np.exp(- 0.05 * (V + 65))
+    # alpha_h = 0.07 * np.exp(- 0.05 * (V + 65))
+    alpha_h = 0.07 * np.exp(- V / 20)
     return alpha_h
 
 def calc_beta_h(V):
-    beta_h = 1 / (np.exp(- 0.1 * (V + 35)) + 1)
+    # beta_h = 1 / (np.exp(- 0.1 * (V + 35)) + 1)
+    beta_h = 1 / (np.exp(3 - 0.1 * V) + 1)
     return beta_h
 
 def calc_alpha_n(V):
-    alpha_n = (0.01 * (V + 55)) / (- np.exp(- 0.1 * (V + 55)) + 1)
+    # alpha_n = (0.01 * (V + 55)) / (- np.exp(- 0.1 * (V + 55)) + 1)
+    alpha_n = (0.1 - 0.01 * V) / (np.exp(1 - 0.1 * V) - 1)
     return alpha_n
 
 def calc_beta_n(V):
-    beta_n = 0.125 * np.exp(-0.0125 * (V + 65))
+    # beta_n = 0.125 * np.exp(-0.0125 * (V + 65))
+    beta_n = 0.125 * np.exp(- V / 80)
     return beta_n
 
-def differentiate_hodgkin_huxley(t, y, **kwargs):
+def differentiate_hodgkin_huxley(t, y, square=False, **kwargs):
     E_m, m, h, n = y
 
     C = 1
-    g_bar_na = 120 # ms/cm2
-    g_bar_k = 36 # ms/cm2
-    g_bar_leak = 0.3 # ms/cm2
-    E_NA = 50 # mV
-    E_k = -77 # mV
-    E_leak = -54 # mV
+    g_bar_leak = 0.3 # ms/cm^2
+    E_leak = 10.6 # mV
+    g_bar_na = 120 # ms/cm^2
+    E_NA = 115 # mV
+    g_bar_k = 36 # ms/cm^2
+    E_k = -12 # mV
 
     # 電流の計算
     current_na = - g_bar_na * np.power(m, 3) * h *(E_m - E_NA)
     current_k = - g_bar_k * np.power(n, 4) * (E_m - E_k)
     current_leak = - g_bar_leak * (E_m - E_leak)
 
-    # 50ミリ秒ごとに生じる矩形波
-    current_ext = 0.0 if t % 100 < 50 else 20.0
+    if square:
+        # 50ミリ秒ごとに生じる矩形波（オリジナル）
+        current_ext = 0.0 if t % 100 < 50 else 20.0
+    else:
+        # 山﨑・五十嵐（2021）と同じ設定
+        current_ext = 9.0
 
     # 微分方程式の計算
     dE_mdt = (1 / C) * (current_na + current_k + current_leak + current_ext)
@@ -1233,20 +1245,34 @@ def differentiate_hodgkin_huxley(t, y, **kwargs):
 def simulate_hodgkin_huxley(t_eval,
                             delta_t,
                             method='rk4'):
-    """
-    Note
-    ----
-    Eulerの場合: ステップ幅0.1は厳しい。少なくとも0.01は必要か。
-    RK4の場合: ステップ幅0.1は厳しい。少なくとも0.01は必要か。
+    """ホジキン・ハックスリーモデルを用いたシミュレーション
 
     Parameters
     ----------
-    t_eval :
+    t_eval : np.ndarray or list
+        評価の対象となる時刻を保存した一次元の配列
     delta_t : float
+        ステップ幅 (ミリ秒)
     method : str
+        'euler'の場合オイラー法，'rk4'の場合ルンゲ・クッタ法を使用
 
     Returns
     -------
+
+    Note
+    ----
+    神経細胞の数は一つのみ対応
+
+    時間幅（delta_t）の値について
+    - Eulerの場合: ステップ幅0.1は厳しい。0.01は必要か
+    - RK4の場合: ステップ幅0.1は厳しい。0.01は必要か
+
+    定数値について
+    - 現在は山﨑・五十嵐（2021）の数字を使っている（静止膜電位を0としている）
+    - コメントアウトしている数式は「Juliaで学ぶ計算論的神経科学」を参考にしたもの
+
+    なお，山﨑・五十嵐（2021）では，delta_t = 10μs = 0.01msでルンゲクッタ
+    また「HHモデルをオイラー法で解こうとすると1μs程度は必要と」記載あり
     """
     y = np.hstack([-65, 0.05, 0.6, 0.32])
     results = {
@@ -1515,7 +1541,7 @@ def differentiate_working_memory_ion(t, y, **kwargs):
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
-        (C_EXC * 1000.0 * 1.0 if 100.0 <= t and t <= 200.0 else 0.0) \
+        (C_EXC if 100.0 <= t and t <= 200.0 else 0.0) \
         * architecture['positions_cue'].reshape(-1, 1)
 
     # それぞれの電流をまとめる
@@ -1526,8 +1552,8 @@ def differentiate_working_memory_ion(t, y, **kwargs):
 
     # (vi) 膜電位vの計算
     dvdt = np.empty_like(potentials)
-    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / (C_EXC * 1000)
-    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / (C_INH * 1000)
+    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / C_EXC
+    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / C_INH
 
     # すべての微分をひとつの配列にまとめる
     dydt = np.hstack([
@@ -1559,10 +1585,10 @@ def simulate_working_memory_ion(t_eval,
     # シードを固定する
     np.random.seed(SEED)
 
-    # 神経回路のユニット設定
-    num_unit = architecture['num_unit']  # ユニットの総数
-    num_unit_exc = architecture['num_unit_exc']  # 興奮性ユニットの総数
-    num_unit_inh = architecture['num_unit_inh']  # 抑制性ユニットの総数
+    # 神経細胞の個数の設定
+    num_unit = architecture['num_unit']  # 神経細胞の総数
+    num_unit_exc = architecture['num_unit_exc']  # 興奮性神経細胞の総数
+    num_unit_inh = architecture['num_unit_inh']  # 抑制性神経細胞の総数
 
     # (B) 初期値の設定
     diff_cond_ampa = np.zeros((
@@ -1604,7 +1630,7 @@ def simulate_working_memory_ion(t_eval,
                 n=1, p=0.1, size=potentials.shape
             ) * 7.0
         current_noise_weight = np.where(
-            np.array(architecture['excitation_binary']) == 1, 0.5 * 1, 0.2 * 1.8
+            np.array(architecture['excitation_binary']) == 1, 0.5, 0.36
         ).reshape(current_noise.shape)
         current_noise = 1000 * current_noise_weight * current_noise
 
