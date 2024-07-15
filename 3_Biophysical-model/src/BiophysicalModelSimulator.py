@@ -51,19 +51,19 @@ G_MAX_GABA = 10.0
 ALPHA_CA = 70.0
 BETA_K = 1.0
 
-# 重み付け係数（電位依存性イオンチャネルを使用する場合）
+# 重みづけ係数（電位依存性イオンチャネルを使用する場合）
 # WEIGHT_STRENGTH_E2E, WEIGHT_WIDTH_E2E = 1.0, 8
 # WEIGHT_STRENGTH_E2I, WEIGHT_WIDTH_E2I = 0.8, 50
 # WEIGHT_STRENGTH_I2E, WEIGHT_WIDTH_I2E = 0.75, 60
 # WEIGHT_STRENGTH_I2I, WEIGHT_WIDTH_I2I = 0.1, 80
 
-# 重み付け係数（LIFベースのモデルを使用する場合）
+# 重みづけ係数（LIFベースのモデルを使用する場合）
 WEIGHT_STRENGTH_E2E, WEIGHT_WIDTH_E2E = 0.8, 10
 WEIGHT_STRENGTH_E2I, WEIGHT_WIDTH_E2I = 0.5, 50
 WEIGHT_STRENGTH_I2E, WEIGHT_WIDTH_I2E = 0.5, 50
 WEIGHT_STRENGTH_I2I, WEIGHT_WIDTH_I2I = 0.2, 40
 
-# 重み付け係数（可視化関数のテスト用）
+# 重みづけ係数（可視化関数のテスト用）
 # WEIGHT_STRENGTH_E2E, WEIGHT_WIDTH_E2E = 1.2, 5
 # WEIGHT_STRENGTH_E2I, WEIGHT_WIDTH_E2I = 0.8, 50
 # WEIGHT_STRENGTH_I2E, WEIGHT_WIDTH_I2E = 0.4, 100
@@ -217,19 +217,20 @@ def simulate_lif(t_eval,
     potential : np.ndarray
         膜電位の時系列全体
     """
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     potential = V_INIT
     last_spike = -100
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'potential': [],
         'current': [],
+        'spike': [],
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
-        # (D-1) 各時刻における注入電流の作成
+        # [D] 各時刻における計算
+        # [D-a] 各時刻における注入電流の作成
         if t < 30.0:
             current = 0
         elif t < 60.0:
@@ -240,7 +241,7 @@ def simulate_lif(t_eval,
         else:
             current = 0
 
-        # (D-2) 各時刻における膜電位の更新
+        # [D-b] 各時刻における膜電位の更新
         potential = calc_lif(
             t=t,
             potential=potential,
@@ -248,13 +249,13 @@ def simulate_lif(t_eval,
             last_spike=last_spike,
         )
 
-        # (D-3) 発火の判定
+        # [D-c] スパイクの判定
         spike = 1 if potential >= V_ACT else 0
 
-        # (D-4) 直近の発火時刻の更新
+        # [D-d] 直近の発火時刻の更新
         last_spike = t if spike == 1 else last_spike
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['potential'].append(potential)
         results['current'].append(current)
         results['spike'].append(spike)
@@ -278,18 +279,18 @@ def simulate_network_lif(t_eval, weight):
     potential : np.ndarray
         膜電位 () をシーケンス
     """
-    # (A) シミュレーションの設定
+    # [A] シミュレーションの設定
     cue_scale = 20
 
     # シードを固定し実行ごとの乱数を統一する
     np.random.seed(SEED)
 
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     potential_1, potential_2, potential_3 = V_INIT, V_INIT, V_INIT
     spike_1, spike_2, spike_3 = 0, 0, 0
     last_spike_1, last_spike_2, last_spike_3 = -100, -100, -100
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'potential_1': [],
         'potential_2': [],
@@ -297,8 +298,8 @@ def simulate_network_lif(t_eval, weight):
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
-        # (D-1) 電流を計算
+        # [D] 各時刻における計算
+        # [D-a] 電流を計算
         current_cue_1 = cue_scale * np.random.rand()
         current_syn_1 = weight * spike_2 + weight * spike_3
         current_1 = current_cue_1 + current_syn_1
@@ -311,7 +312,7 @@ def simulate_network_lif(t_eval, weight):
         current_syn_3 = weight * spike_1 + weight * spike_2
         current_3 = current_cue_3 + current_syn_3
 
-        # (D-2) 膜電位の更新
+        # [D-b] 膜電位の更新
         potential_1 = calc_lif(
             t=t,
             potential=potential_1,
@@ -331,17 +332,17 @@ def simulate_network_lif(t_eval, weight):
             last_spike=last_spike_3,
         )
 
-        # (D-3) スパイクの判定
+        # [D-c] スパイクの判定
         spike_1 = 1.0 if potential_1 == V_ACT else 0.0
         spike_2 = 1.0 if potential_2 == V_ACT else 0.0
         spike_3 = 1.0 if potential_3 == V_ACT else 0.0
 
-        # (D-4) 直近の発火時刻の更新
+        # [D-d] 直近の発火時刻の更新
         last_spike_1 = t if spike_1 == 1.0 else last_spike_1
         last_spike_2 = t if spike_2 == 1.0 else last_spike_2
         last_spike_3 = t if spike_3 == 1.0 else last_spike_3
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['potential_1'].append(potential_1)
         results['potential_2'].append(potential_2)
         results['potential_3'].append(potential_3)
@@ -362,7 +363,7 @@ def calc_synaptic_effect(last_spikes, t, weights, g_max):
     t : float
         時刻
     weights : np.ndarray
-        重み付け係数
+        重みづけ係数
         次元は，シナプス後細胞の数 x シナプス前細胞の数
     g_max : float
         最大コンダクタンス値
@@ -448,7 +449,7 @@ def differentiate_conductance(t, y, **kwargs):
     # 状態yをコンダクタンスとコンダクタンスの微分に分解
     diff_cond, conductances = np.split(y, [1], axis=1)
 
-    # (i) シナプスの影響度eの計算
+    # [D-a-i] シナプスの影響度eの計算
     synapse_effects = calc_synaptic_effect(
         last_spikes=last_spikes,
         t=t,
@@ -456,7 +457,7 @@ def differentiate_conductance(t, y, **kwargs):
         g_max=g_max,
     )
 
-    # (ii) コンダクタンスの微分fの計算（微分）
+    # [D-a-ii] コンダクタンスの微分fの計算（微分）
     dfdt = calc_dfdt(
         diff_cond=diff_cond,
         conductances=conductances,
@@ -465,7 +466,7 @@ def differentiate_conductance(t, y, **kwargs):
         tau_2=tau_2,
     )
 
-    # (iii) コンダクタンスgの計算（微分）
+    # [D-a-iii] コンダクタンスgの計算（微分）
     dgdt = diff_cond
 
     # 微分の値を一つの変数にまとめる
@@ -492,26 +493,26 @@ def simulate_conductance(t_eval,
     results : dict
         コンダクタンスやその微分の変化をリストとして値に保存した辞書
     """
-    # (A) シミュレーションの設定
-    # 重み付け係数は，値が1の1 x 1の行列とする.
+    # [A] シミュレーションの設定
+    # 重みづけ係数は，値が1の1 x 1の行列とする.
     # 神経細胞数は1
     weights = np.ones((1, 1))
 
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     last_spikes = -100 * np.ones((1, 1))
     diff_cond = np.zeros((1, 1))
     conductances = np.zeros((1, 1))
     y = np.hstack([diff_cond, conductances])
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'diff_cond': [],
         'conductances': [],
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
-        # (D-1) 微分方程式による更新
+        # [D] 各時刻における計算
+        # [D-a] 微分方程式による更新
         y = solve_differential_equation(
             dydt=differentiate_conductance,
             t=t,
@@ -526,24 +527,24 @@ def simulate_conductance(t_eval,
         diff_cond, conductances = np.split(
             y, [1], axis=1)
 
-        # (D-2) スパイクの判定
+        # [D-b] スパイクの判定
         # 10-20msecは常時発火と仮定
         spikes = np.where(
             10 < t and t < 20 , 1, 0
         ).reshape(1, 1)
 
-        # (D-3) 直近の発火時刻の更新
+        # [D-c] 直近の発火時刻の更新
         last_spikes = np.where(
             spikes == 1, t, last_spikes
         )
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['diff_cond'].append(
             diff_cond)
         results['conductances'].append(
             conductances)
 
-    # (F) 返り値の準備
+    # [F] 返り値の準備
     for key, value in results.items():
         # 結果の値をNumpy型に整形
         results[key] = np.hstack(value).T
@@ -583,7 +584,7 @@ def differentiate_nmda_unit(t, y, **kwargs):
     diff_cond, conductances, potentials = \
         np.split(y, [1, 2], axis=1)
 
-    # (i) シナプスの影響度eの計算
+    # [D-a-i] シナプスの影響度eの計算
     synapse_effects = calc_synaptic_effect(
         last_spikes=last_spikes,
         t=t,
@@ -591,7 +592,7 @@ def differentiate_nmda_unit(t, y, **kwargs):
         g_max=G_MAX_NMDA,
     )
 
-    # (ii) コンダクタンスの微分fの計算（微分）
+    # [D-a-ii] コンダクタンスの微分fの計算（微分）
     dfdt = calc_dfdt(
         diff_cond=diff_cond,
         conductances=conductances,
@@ -600,17 +601,17 @@ def differentiate_nmda_unit(t, y, **kwargs):
         tau_2=tau_2,
     )
 
-    # (iii) コンダクタンスのgの計算（微分）
+    # [D-a-iii] コンダクタンスのgの計算（微分）
     dgdt = diff_cond
 
-    # (iv) 電流Iの計算
+    # [D-a-iv] 電流Iの計算
     f_mg = calc_block_mg(potentials)
     current_nmda = - f_mg * conductances * (potentials - E_NMDA)
     current_leak = - G_MAX_LEAK_NMDA * (potentials - E_LEAK)
     current_cue = 1000.0 if t >= 100.0 and t < 150.0 else 0.0
     current = (current_nmda + current_leak + current_cue) / C_NMDA
 
-    # (v) 膜電位vの計算（微分）
+    # [D-a-v] 膜電位vの計算（微分）
     dvdt = current
 
     # 微分の値を一つの変数にまとめる
@@ -640,17 +641,17 @@ def simulate_nmda_unit(t_eval,
     results : dict
         コンダクタンスやその微分の変化をリストとして値に保存した辞書
     """
-    # (A) シミュレーションの設定
-    # 重み付け係数は，値が1の1 x 1の行列とする. 神経細胞数は1
+    # [A] シミュレーションの設定
+    # 重みづけ係数は，値が1の1 x 1の行列とする. 神経細胞数は1
     weights = weight * np.ones((1, 1))
 
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     last_spikes = -100 * np.ones((1, 1))
     diff_cond = np.zeros((1, 1))
     conductances = np.zeros((1, 1))
     potentials = V_INIT * np.ones((1, 1))
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'potentials': [],
         'diff_cond': [],
@@ -658,11 +659,11 @@ def simulate_nmda_unit(t_eval,
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
+        # [D] 各時刻における計算
         # 変数をまとめる
         y = np.hstack([diff_cond, conductances, potentials])
 
-        # (D-1) 微分方程式による更新
+        # [D-a] 微分方程式による更新
         y = solve_differential_equation(
             dydt=differentiate_nmda_unit,
             t=t,
@@ -676,24 +677,24 @@ def simulate_nmda_unit(t_eval,
         )
         diff_cond, conductances, potentials = np.split(y, [1, 2], axis=1)
 
-        # (D-2) 積分発火モデルによる更新
+        # [D-b] 積分発火モデルによる更新
         fuouki = (last_spikes <= t) & (t <= last_spikes + T_REF)
         katsudo = (potentials >= V_THERESHOLD) & (~ fuouki)
         potentials[katsudo] = V_ACT
         potentials[fuouki] = V_RESET
 
-        # (D-3) スパイクの判定
+        # [D-c] スパイクの判定
         spikes = np.where(potentials == V_ACT, 1, 0)
 
-        # (D-4) 直近の発火時刻の更新
+        # [D-d] 直近の発火時刻の更新
         last_spikes = np.where(spikes == 1, t, last_spikes)
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['diff_cond'].append(diff_cond)
         results['conductances'].append(conductances)
         results['potentials'].append(potentials)
 
-    # (F) 返り値の準備
+    # [F] 返り値の準備
     for key, value in results.items():
         # 結果の値をNumpy型に整形
         results[key] = np.hstack(value).T
@@ -703,7 +704,7 @@ def simulate_nmda_unit(t_eval,
 
 # ワーキングメモリモデル
 def calc_exp(dist, strength, width):
-    """距離から重み付け係数を計算
+    """距離から重みづけ係数を計算
     Parameters
     ----------
     dist
@@ -715,14 +716,14 @@ def calc_exp(dist, strength, width):
 
     Returns
     -------
-        重み付け係数
+        重みづけ係数
     """
     w = strength * np.exp(- (dist**2) / (2 * width**2))
     return w
 
 
 def calc_weights(strength, width, degree_pre, degree_post):
-    """シナプス前・後細胞の位置から距離を計算し重み付け係数を計算
+    """シナプス前・後細胞の位置から距離を計算し重みづけ係数を計算
     """
     # DIM: num_unit_to x num_unit_from
     degree_pre_mat = np.vstack([degree_pre for theta in degree_post])
@@ -962,27 +963,27 @@ def differentiate_working_memory_lif(t, y, **kwargs):
      potentials, ) = np.split(
         y, architecture['split_list'], axis=1)
 
-    # (i) シナプスの影響度eの計算
+    # [D-a-i] シナプスの影響度eの計算
     synapse_effects_ampa = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_exc'], :],
+        last_spikes=last_spikes[set_exc, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_exc']],
+        weights=architecture['weights'][:, set_exc],
         g_max=G_MAX_AMPA * dysfuncs_ampa,
     )
     synapse_effects_nmda = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_exc'], :],
+        last_spikes=last_spikes[set_exc, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_exc']],
+        weights=architecture['weights'][:, set_exc],
         g_max=G_MAX_NMDA * dysfuncs_nmda,
     )
     synapse_effects_gaba = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_inh'], :],
+        last_spikes=last_spikes[set_inh, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_inh']],
+        weights=architecture['weights'][:, set_inh],
         g_max=G_MAX_GABA * dysfuncs_gaba,
     )
 
-    # (ii) リガンド依存性コンダクタンスの微分fの計算（微分）
+    # [D-a-ii] リガンド依存性コンダクタンスの微分fの計算（微分）
     dfdt_ampa = calc_dfdt(
         diff_cond=diff_cond_ampa,
         conductances=conductances_ampa,
@@ -1005,36 +1006,36 @@ def differentiate_working_memory_lif(t, y, **kwargs):
         tau_2=TAU_2_GABA,
     )
 
-    # (iii) リガンド依存性コンダクタンスgの計算（微分）
+    # [D-a-iii] リガンド依存性コンダクタンスgの計算（微分）
     dgdt_ampa = diff_cond_ampa
     dgdt_nmda = diff_cond_nmda
     dgdt_gaba = diff_cond_gaba
 
-    # (v) 電流の計算
+    # [D-a-iv] 電流の計算
     current_ampa = - np.sum(
         conductances_ampa * np.tile(
-            potentials - E_AMPA, len(architecture['set_exc'])),
+            potentials - E_AMPA, len(set_exc)),
         axis=1,
         keepdims=True,
     )
     f_mg = calc_block_mg(potentials)
     current_nmda = - np.sum(
         conductances_nmda * np.tile(
-            f_mg * (potentials - E_NMDA), len(architecture['set_exc'])),
+            f_mg * (potentials - E_NMDA), len(set_exc)),
         axis=1,
         keepdims=True,
     )
     current_gaba = - np.sum(
         conductances_gaba * np.tile(
-            potentials - E_GABA, len(architecture['set_inh'])),
+            potentials - E_GABA, len(set_inh)),
         axis=1,
         keepdims=True,
     )
     current_leak = np.empty_like(current_nmda)
-    current_leak[architecture['set_exc'], :] = \
-        - G_MAX_LEAK_EXC * (potentials[architecture['set_exc'], :] - E_LEAK)
-    current_leak[architecture['set_inh'], :] = \
-        - G_MAX_LEAK_INH * (potentials[architecture['set_inh'], :] - E_LEAK)
+    current_leak[set_exc, :] = \
+        - G_MAX_LEAK_EXC * (potentials[set_exc, :] - E_LEAK)
+    current_leak[set_inh, :] = \
+        - G_MAX_LEAK_INH * (potentials[set_inh, :] - E_LEAK)
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
@@ -1046,11 +1047,11 @@ def differentiate_working_memory_lif(t, y, **kwargs):
         current_ampa + current_nmda + current_gaba + current_leak
     current = current_channel + current_cue + current_noise
 
-    # (vi) 膜電位vの計算
+    # [D-a-v] 膜電位vの計算
     # dvdt = current
     dvdt = np.empty_like(potentials)
-    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / C_EXC
-    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / C_INH
+    dvdt[set_exc, :] = current[set_exc, :] / C_EXC
+    dvdt[set_inh, :] = current[set_inh, :] / C_INH
 
     # すべての微分をひとつの配列にまとめる
     dydt = np.hstack([
@@ -1088,7 +1089,7 @@ def simulate_working_memory_lif(t_eval,
     num_unit_exc = architecture['num_unit_exc']  # 興奮性神経細胞の総数
     num_unit_inh = architecture['num_unit_inh']  # 抑制性神経細胞の総数
 
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     diff_cond_ampa = np.zeros((
         num_unit, num_unit_exc))
     conductances_ampa = np.zeros((
@@ -1110,14 +1111,14 @@ def simulate_working_memory_lif(t_eval,
     ])
     last_spikes = -100 * np.ones((num_unit, 1))
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'potentials': [],
         'spikes': [],
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
+        # [D] 各時刻における計算
         y = np.hstack([
             diff_cond_nmda, conductances_nmda,
             diff_cond_ampa, conductances_ampa,
@@ -1134,7 +1135,7 @@ def simulate_working_memory_lif(t_eval,
         ).reshape(current_noise.shape)
         current_noise = 1000 * current_noise_weight * current_noise
 
-        # (D-1) 微分方程式の計算
+        # [D-a] 微分方程式による更新
         # コンダクタンスの微分, コンダクタンス, 膜電位, カルシウム濃度が対象
         y = solve_differential_equation(
             dydt=differentiate_working_memory_lif,
@@ -1155,26 +1156,27 @@ def simulate_working_memory_lif(t_eval,
          potentials,) = np.split(
             y, architecture['split_list'], axis=1)
 
-        # (D-2) スパイクの判定 (LIFモデルの処理)
+        # [D-b] 積分発火モデルによる更新
         fuouki = (last_spikes <= t) & (t <= last_spikes + T_REF)
-        seishi = (potentials < V_THERESHOLD) & (~ fuouki)
         katsudo = (potentials >= V_THERESHOLD) & (~ fuouki)
         potentials[katsudo] = V_ACT
         potentials[fuouki] = V_RESET
-        potentials[seishi] = potentials[seishi]
 
-        # (D-3) 直近の発火時刻の更新
+        # [D-c] スパイクの判定
         spikes = np.where(potentials == V_ACT, 1, 0)
+
+        # [D-d] 直近の発火時刻の更新
         last_spikes = np.where(spikes == 1, t, last_spikes)
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['potentials'].append(potentials)
         results['spikes'].append(spikes)
 
-    # (F) 返り値の準備
+    # [F] 返り値の準備
     for key, value in results.items():
         # 結果の値をNumpy型に整形
         results[key] = np.hstack(value).T
+
     return results
 
 
@@ -1371,18 +1373,18 @@ def simulate_channel_ca(t_eval):
     results : dict
         カリウムコンダクタンスの変化をリストとして値に保存した辞書
     """
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     ca = 0
     last_spike = -100
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'ca': [],
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
-        # (D-1) 微分方程式による更新
+        # [D] 各時刻における計算
+        # [D-a] 微分方程式による更新
         ca = solve_differential_equation(
             dydt= differentiate_dCadt,
             t=t,
@@ -1392,14 +1394,14 @@ def simulate_channel_ca(t_eval):
             last_spikes=last_spike,
         )
 
-        # (D-2) スパイクの判定
+        # [D-b] スパイクの判定
         # 20-30msecは常時発火と仮定
         spike = 1.0 if 20.0 < t and t < 30.0 else 0.0
 
-        # (D-3) 直近の発火時刻の更新
+        # [D-c] 直近の発火時刻の更新
         last_spike = t if spike == 1 else last_spike
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['ca'].append(ca)
     return results
 
@@ -1456,27 +1458,27 @@ def differentiate_working_memory_ion(t, y, **kwargs):
      potentials, ca) = np.split(
          y, architecture['split_list'], axis=1)
 
-    # (i) シナプスの影響度eの計算
+    # [D-a-i] シナプスの影響度eの計算
     synapse_effects_ampa = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_exc'], :],
+        last_spikes=last_spikes[set_exc, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_exc']],
+        weights=architecture['weights'][:, set_exc],
         g_max=G_MAX_AMPA * dysfuncs_ampa,
     )
     synapse_effects_nmda = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_exc'], :],
+        last_spikes=last_spikes[set_exc, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_exc']],
+        weights=architecture['weights'][:, set_exc],
         g_max=G_MAX_NMDA * dysfuncs_nmda,
     )
     synapse_effects_gaba = calc_synaptic_effect(
-        last_spikes=last_spikes[architecture['set_inh'], :],
+        last_spikes=last_spikes[set_inh, :],
         t=t,
-        weights=architecture['weights'][:, architecture['set_inh']],
+        weights=architecture['weights'][:, set_inh],
         g_max=G_MAX_GABA * dysfuncs_gaba,
     )
 
-    # (ii) リガンド依存性コンダクタンスの微分fの計算（微分）
+    # [D-a-ii] リガンド依存性コンダクタンスの微分fの計算（微分）
     dfdt_ampa = calc_dfdt(
         diff_cond=diff_cond_ampa,
         conductances=conductances_ampa,
@@ -1499,45 +1501,45 @@ def differentiate_working_memory_ion(t, y, **kwargs):
         tau_2=TAU_2_GABA,
     )
 
-    # (iii) リガンド依存性コンダクタンスgの計算（微分）
+    # [D-a-iii] リガンド依存性コンダクタンスgの計算（微分）
     dgdt_ampa = diff_cond_ampa
     dgdt_nmda = diff_cond_nmda
     dgdt_gaba = diff_cond_gaba
 
-    # (iv) その他のコンダクタンスの計算
+    # [D-a-iv] その他のコンダクタンスの計算
     conductances_na = calc_g_na(potentials)
     conductances_kca = BETA_K * ca
     dCadt = differentiate_dCadt(
         t=t, y=ca, last_spikes=last_spikes
     )
 
-    # (v) 電流の計算
+    # [D-a-v] 電流の計算
     current_ampa = - np.sum(
         conductances_ampa * np.tile(
-            potentials - E_AMPA, len(architecture['set_exc'])),
+            potentials - E_AMPA, len(set_exc)),
         axis=1,
         keepdims=True,
     )
     f_mg = calc_block_mg(potentials)
     current_nmda = - np.sum(
         conductances_nmda * np.tile(
-            f_mg * (potentials - E_NMDA), len(architecture['set_exc'])),
+            f_mg * (potentials - E_NMDA), len(set_exc)),
         axis=1,
         keepdims=True,
     )
     current_gaba = - np.sum(
         conductances_gaba * np.tile(
-            potentials - E_GABA, len(architecture['set_inh'])),
+            potentials - E_GABA, len(set_inh)),
         axis=1,
         keepdims=True,
     )
     current_na = - conductances_na * (potentials - E_NA)
     current_kca = - conductances_kca * (potentials - E_KCA)
     current_leak = np.empty_like(current_nmda)
-    current_leak[architecture['set_exc'], :] = \
-        - G_MAX_LEAK_EXC * (potentials[architecture['set_exc'], :] - E_LEAK)
-    current_leak[architecture['set_inh'], :] = \
-        - G_MAX_LEAK_INH * (potentials[architecture['set_inh'], :] - E_LEAK)
+    current_leak[set_exc, :] = \
+        - G_MAX_LEAK_EXC * (potentials[set_exc, :] - E_LEAK)
+    current_leak[set_inh, :] = \
+        - G_MAX_LEAK_INH * (potentials[set_inh, :] - E_LEAK)
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
@@ -1550,10 +1552,10 @@ def differentiate_working_memory_ion(t, y, **kwargs):
          + current_na + current_kca + current_leak
     current = current_channel + current_cue + current_noise
 
-    # (vi) 膜電位vの計算
+    # [D-a-vi] 膜電位vの計算
     dvdt = np.empty_like(potentials)
-    dvdt[architecture['set_exc'], :] = current[architecture['set_exc'], :] / C_EXC
-    dvdt[architecture['set_inh'], :] = current[architecture['set_inh'], :] / C_INH
+    dvdt[set_exc, :] = current[set_exc, :] / C_EXC
+    dvdt[set_inh, :] = current[set_inh, :] / C_INH
 
     # すべての微分をひとつの配列にまとめる
     dydt = np.hstack([
@@ -1590,7 +1592,7 @@ def simulate_working_memory_ion(t_eval,
     num_unit_exc = architecture['num_unit_exc']  # 興奮性神経細胞の総数
     num_unit_inh = architecture['num_unit_inh']  # 抑制性神経細胞の総数
 
-    # (B) 初期値の設定
+    # [B] 初期値の設定
     diff_cond_ampa = np.zeros((
         num_unit, num_unit_exc))
     conductances_ampa = np.zeros((
@@ -1614,14 +1616,14 @@ def simulate_working_memory_ion(t_eval,
     ])
     last_spikes = -100 * np.ones((num_unit, 1))
 
-    # (C) 結果保存用変数の準備
+    # [C] 結果保存用変数の準備
     results = {
         'potentials': [],
         'spikes': [],
     }
 
     for t in t_eval:
-        # (D) 各時刻における計算
+        # [D] 各時刻における計算
         # 前時刻の膜電位を保存
         potentials_pre = potentials
 
@@ -1634,7 +1636,7 @@ def simulate_working_memory_ion(t_eval,
         ).reshape(current_noise.shape)
         current_noise = 1000 * current_noise_weight * current_noise
 
-        # (D-1) 微分方程式による更新
+        # [D-a] 微分方程式による更新
         # コンダクタンスの微分, コンダクタンス, 膜電位, カルシウム濃度が対象
         y = solve_differential_equation(
             dydt=differentiate_working_memory_ion,
@@ -1655,22 +1657,22 @@ def simulate_working_memory_ion(t_eval,
          potentials, ca) = np.split(
             y, architecture['split_list'], axis=1)
 
-        # (D-2) スパイクの判定
+        # [D-b] スパイクの判定
         spikes = np.where(
             (potentials >= V_THERESHOLD) & ~ (potentials_pre >= V_THERESHOLD),
             1,
             0)
 
-        # (D-3) 直近の発火時刻の更新
+        # [D-c] 直近の発火時刻の更新
         last_spikes = np.where(
             spikes == 1, t, last_spikes
         ).reshape(num_unit, 1)
 
-        # (E) 計算結果を保存
+        # [E] 計算結果を保存
         results['potentials'].append(potentials)
         results['spikes'].append(spikes)
 
-    # (F) 返り値の準備
+    # [F] 返り値の準備
     for key, value in results.items():
         # 結果の値をNumpy型に整形
         results[key] = np.hstack(value).T
