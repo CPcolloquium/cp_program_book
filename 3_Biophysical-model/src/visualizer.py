@@ -126,9 +126,10 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
     num_unit = spikes.shape[1]
 
     rslt = []
-    for idx_unit in range(1, num_unit + 1):
+    for idx_unit in range(num_unit):
         rslt.extend([
-            [t, idx_unit] for t, spike in zip(t_eval, spikes[:, idx_unit])
+            # 神経細胞の番号を1始まりに調整
+            [t, idx_unit + 1] for t, spike in zip(t_eval, spikes[:, idx_unit])
             if spike == 1
         ])
     rslt = np.array(rslt).T
@@ -140,7 +141,7 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
         # ひとつも発火がなかった場合の処理
         print('Raster plot is skipped because of no spikes.')
     plt.xlim(t_eval[0], t_eval[-1])
-    plt.ylim(-1, num_unit)
+    plt.ylim(0, num_unit + 1)
     plt.xlabel('時刻 [msec]')
     plt.ylabel('ニューロンの番号')
 
