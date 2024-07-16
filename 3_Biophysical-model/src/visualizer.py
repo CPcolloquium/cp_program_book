@@ -209,8 +209,8 @@ def format_architecture(architecture):
     # print(df_node.loc[:, ['pos_x']] + make_jitter_x(df_node=df_node) * scale)
     df_node['pos_x_jitter'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale
     df_node['pos_y_jitter'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale
-    df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale * 1.6
-    df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale * 1.6
+    df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale * 1.65
+    df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale * 1.65
     # df_node['pos_x_jitter_large'] = df_node['pos_x'] + make_jitter_x(df_node=df_node) * scale + 0.05
     # df_node['pos_y_jitter_large'] = df_node['pos_y'] + make_jitter_y(df_node=df_node) * scale
 

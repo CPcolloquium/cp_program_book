@@ -190,7 +190,7 @@ def calc_lif(t, potential, current_ext, last_spike):
     potential_next : float
         次の時刻における膜電位
     """
-    if last_spike <= t and t <= last_spike + T_REF:
+    if last_spike < t and t <= last_spike + T_REF:
         # 不応期の間は膜電位をリセット電位に固定
         # 式(1)の第三式に対応
         potential_next = V_RESET
@@ -359,7 +359,7 @@ def simulate_network(t_eval,
         )
 
         # [D-b] 積分発火モデルによる更新
-        refractory = (last_spikes <= t) & (t <= last_spikes + T_REF)
+        refractory = (last_spikes < t) & (t <= last_spikes + T_REF)
         active = (potentials >= V_THERESHOLD) & (~ refractory)
         potentials[active] = V_ACT
         potentials[refractory] = V_RESET
@@ -411,7 +411,7 @@ def calc_synaptic_effect(last_spikes, t, weights, g_max):
     # 直近の時刻から，シナプス前細胞におけるスパイクを判定
     # DIM: num_unit_from x 1
     check_spikes = np.where(
-        (t - 2 * DELTA_T <= last_spikes + T_DELAY) & (last_spikes + T_DELAY <= t - DELTA_T), 1.0, 0.0)
+        (t - 2 * DELTA_T < last_spikes + T_DELAY) & (last_spikes + T_DELAY <= t - DELTA_T), 1.0, 0.0)
     check_spikes = check_spikes / DELTA_T
 
     # スパイク発火の行列を整形
@@ -730,7 +730,7 @@ def simulate_nmda_unit(t_eval,
         diff_cond, conductances, potentials = np.split(y, [1, 2], axis=1)
 
         # [D-b] 積分発火モデルによる更新
-        refractory = (last_spikes <= t) & (t <= last_spikes + T_REF)
+        refractory = (last_spikes < t) & (t <= last_spikes + T_REF)
         active = (potentials >= V_THERESHOLD) & (~ refractory)
         potentials[active] = V_ACT
         potentials[refractory] = V_RESET
@@ -1096,7 +1096,7 @@ def differentiate_working_memory(t, y, **kwargs):
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
-        (C_EXC if 100.0 <= t and t <= 200.0 else 0.0) \
+        (C_EXC if 100.0 < t and t <= 200.0 else 0.0) \
         * architecture['positions_cue'].reshape(-1, 1)
 
     # それぞれの電流をまとめる
@@ -1211,7 +1211,7 @@ def simulate_working_memory(t_eval,
             y, architecture['split_list'], axis=1)
 
         # [D-b] 積分発火モデルによる更新
-        refractory = (last_spikes <= t) & (t <= last_spikes + T_REF)
+        refractory = (last_spikes < t) & (t <= last_spikes + T_REF)
         active = (potentials >= V_THERESHOLD) & (~ refractory)
         potentials[active] = V_ACT
         potentials[refractory] = V_RESET
@@ -1402,7 +1402,7 @@ def differentiate_dCadt(t, y, **kwargs):
 
     # スパイクの判定
     check_spike = np.where(
-        (t - 2 * DELTA_T <= last_spikes) & (last_spikes <= t - DELTA_T),
+        (t - 2 * DELTA_T < last_spikes) & (last_spikes <= t - DELTA_T),
         1.0,
         0.0
     )
@@ -1597,7 +1597,7 @@ def differentiate_working_memory_ion(t, y, **kwargs):
 
     # キュー電流の計算。100-200m秒で電流を流す
     current_cue = \
-        (C_EXC if 100.0 <= t and t <= 200.0 else 0.0) \
+        (C_EXC if 100.0 < t and t <= 200.0 else 0.0) \
         * architecture['positions_cue'].reshape(-1, 1)
 
     # それぞれの電流をまとめる
