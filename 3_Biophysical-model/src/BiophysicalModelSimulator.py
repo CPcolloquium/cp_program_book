@@ -338,6 +338,7 @@ def simulate_network(t_eval,
     # [B] 初期値の設定
     potentials = V_INIT * np.ones((num_unit, 1))
     spikes = np.zeros((num_unit, 1))
+    last_spikes = -100 * np.ones((1, 1))
 
     # [C] 結果保存用変数の準備
     results = {
