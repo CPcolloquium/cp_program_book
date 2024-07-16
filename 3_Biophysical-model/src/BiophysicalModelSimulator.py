@@ -51,6 +51,10 @@ G_MAX_GABA = 10.0
 ALPHA_CA = 70.0
 BETA_K = 1.0
 
+# 積分発火モデルによる神経回路
+G_MAX_LEAK_NETWORK = 1.0
+E_LEAK_NETWORK = -65.0
+
 # 注入電流（ワーキングメモリ）
 CUE_SCALE = 7.0
 CUE_SCALE_EXT = 0.5
@@ -305,7 +309,7 @@ def differentiate_network(t, y, **kwargs):
     currents_ext = currents_cue + currents_syn
     print(currents_cue.shape, currents_syn.shape, currents_ext.shape)
 
-    dydt = - G_MAX_LEAK_NMDA * (y - E_LEAK) + currents_ext
+    dydt = - G_MAX_LEAK_NETWORK * (y - E_LEAK_NETWORK) + currents_ext
     return dydt
 
 
@@ -333,12 +337,12 @@ def simulate_network(t_eval,
     # 神経細胞数は3で固定
     num_unit = 3
     # 重みづけ係数は，値がweightのnum_unit x num_unitの行列とする
-    weights = np.ones((num_unit, num_unit))
+    weights = weight * np.ones((num_unit, num_unit))
 
     # [B] 初期値の設定
     potentials = V_INIT * np.ones((num_unit, 1))
     spikes = np.zeros((num_unit, 1))
-    last_spikes = -100 * np.ones((1, 1))
+    last_spikes = -100 * np.ones((num_unit, 1))
 
     # [C] 結果保存用変数の準備
     results = {
@@ -363,11 +367,17 @@ def simulate_network(t_eval,
         # [D-b] 積分発火モデルによる更新
         refractory = (last_spikes < t) & (t <= last_spikes + T_REF)
         active = (potentials >= V_THERESHOLD) & (~ refractory)
+        print(active, refractory)
         potentials[active] = V_ACT
         potentials[refractory] = V_RESET
 
         # [D-c] スパイクの判定
         spikes = np.where(potentials == V_ACT, 1, 0)
+
+        # [D-d] 直近の発火時刻の更新
+        last_spikes = np.where(
+            spikes == 1, t, last_spikes
+        )
 
         # [E] 計算結果を保存
         results['potentials'].append(potentials)
