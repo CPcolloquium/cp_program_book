@@ -307,8 +307,8 @@ def differentiate_network(t, y, **kwargs):
 
     # [D-a-iiii] 神経細胞全体の流入電流
     currents_ext = currents_cue + currents_syn
-    print(currents_cue.shape, currents_syn.shape, currents_ext.shape)
 
+    # [D-a-iv] 微分方程式の計算
     dydt = - G_MAX_LEAK_NETWORK * (y - E_LEAK_NETWORK) + currents_ext
     return dydt
 
@@ -367,7 +367,6 @@ def simulate_network(t_eval,
         # [D-b] 積分発火モデルによる更新
         refractory = (last_spikes < t) & (t <= last_spikes + T_REF)
         active = (potentials >= V_THERESHOLD) & (~ refractory)
-        print(active, refractory)
         potentials[active] = V_ACT
         potentials[refractory] = V_RESET
 
