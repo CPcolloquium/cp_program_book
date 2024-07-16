@@ -337,6 +337,7 @@ def simulate_network(t_eval,
 
     # [B] 初期値の設定
     potentials = V_INIT * np.ones((num_unit, 1))
+    spikes = np.zeros((num_unit, 1))
 
     # [C] 結果保存用変数の準備
     results = {
@@ -594,9 +595,8 @@ def simulate_conductance(t_eval,
 # NMDA受容体付き神経細胞
 def calc_block_mg(potential):
     """NMDA受容体のマグネシウムブロックの値を計算
-
-    式(9)に相当
     """
+    # 式(9)に相当
     return 1 / (1 + 0.5 * np.exp(- 0.062 * potential))
 
 
@@ -672,7 +672,7 @@ def differentiate_nmda_unit(t, y, **kwargs):
 
 
 def simulate_nmda_unit(t_eval,
-                       weight=3.0,
+                       weight=4.0,
                        tau_1=10.0,
                        tau_2=100.0):
     """コンダクタンスの挙動をシミュレーションする関数
@@ -1138,7 +1138,7 @@ def simulate_working_memory(t_eval,
     results : dict
         膜電位やスパイクの変化をリストとして値に保存した辞書
     """
-
+    # [A] シミュレーションの設定
     # シードを固定する
     np.random.seed(SEED)
 
