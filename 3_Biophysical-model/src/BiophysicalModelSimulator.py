@@ -1606,7 +1606,9 @@ def test_solver(equation_type,
 
     # 自作関数
     for delta_t, method in itertools.product(delta_t_list, method_list):
-        print('simulation settings: ', method, delta_t)
+        print(
+            'Now simulation is executed...',
+            '\n\tsettings : ', method, delta_t)
         t_eval = generate_t_eval(
             t_max=t_max,
             delta_t=delta_t,
