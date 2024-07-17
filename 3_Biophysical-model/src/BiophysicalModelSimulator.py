@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np  # 行列演算用ライブラリを読み込む
 import matplotlib.pyplot as plt  # 可視化用ライブラリを読み込む
 
@@ -196,16 +198,16 @@ def calc_lif(t, potential, current_ext, last_spike):
     """
     if last_spike < t and t <= last_spike + T_REF:
         # 不応期の間は膜電位をリセット電位に固定
-        # 式(1)の第三式に対応
+        # 式(3-1)の第三式に対応
         potential_next = V_RESET
     elif potential >= V_THERESHOLD:
         # 不応期ではなく，かつ発火閾値に達した場合は
-        # 活動電位に固定。式(1)の第二式に対応
+        # 活動電位に固定。式(3-1)の第二式に対応
         potential_next = V_ACT
     else:
         # 不応期ではなく，かつ発火閾値に達しない場合は
         # 微分方程式を用いた更新。
-        # 式(1)の第三式や式(2)に対応
+        # 式(3-1)の第三式や式(3-2)に対応
         potential_delta = DELTA_T * (1.0 / C_LIF) * (
             - G_MAX_REST * (potential - E_REST) + current_ext)
         potential_next = potential + potential_delta
@@ -394,7 +396,7 @@ def simulate_network(t_eval,
 def calc_synaptic_effect(last_spikes, t, weights, g_max):
     """シナプスの影響度を演算
 
-    式(3)に相当
+    式(3-3)に相当
 
     Parameters
     ----------
@@ -441,7 +443,7 @@ def calc_dfdt(diff_cond,
               tau_2):
     """コンダクタンスの二階微分を計算
 
-    式(4)に相当
+    式(3-4)に相当
 
     Parameters
     ----------
@@ -497,7 +499,7 @@ def differentiate_conductance(t, y, **kwargs):
     diff_cond, conductances = np.split(y, [1], axis=1)
 
     # [D-a-i] シナプスの影響度eの計算
-    # 式(3)に相当
+    # 式(3-3)に相当
     synapse_effects = calc_synaptic_effect(
         last_spikes=last_spikes,
         t=t,
@@ -506,7 +508,7 @@ def differentiate_conductance(t, y, **kwargs):
     )
 
     # [D-a-ii] コンダクタンスの微分fの計算（微分）
-    # 式(4)に相当
+    # 式(3-4)に相当
     dfdt = calc_dfdt(
         diff_cond=diff_cond,
         conductances=conductances,
@@ -516,7 +518,7 @@ def differentiate_conductance(t, y, **kwargs):
     )
 
     # [D-a-iii] コンダクタンスgの計算（微分）
-    # 式(5)に相当
+    # 式(3-5)に相当
     dgdt = diff_cond
 
     # 微分の値を一つの変数にまとめる
@@ -606,7 +608,7 @@ def simulate_conductance(t_eval,
 def calc_block_mg(potential):
     """NMDA受容体のマグネシウムブロックの値を計算
     """
-    # 式(9)に相当
+    # 式(3-9)に相当
     return 1 / (1 + 0.5 * np.exp(- 0.062 * potential))
 
 
@@ -638,7 +640,7 @@ def differentiate_nmda_unit(t, y, **kwargs):
         np.split(y, [1, 2], axis=1)
 
     # [D-a-i] シナプスの影響度eの計算
-    # 式(3)に相当
+    # 式(3-3)に相当
     synapse_effects = calc_synaptic_effect(
         last_spikes=last_spikes,
         t=t,
@@ -647,7 +649,7 @@ def differentiate_nmda_unit(t, y, **kwargs):
     )
 
     # [D-a-ii] コンダクタンスの微分fの計算（微分）
-    # 式(4)に相当
+    # 式(3-4)に相当
     dfdt = calc_dfdt(
         diff_cond=diff_cond,
         conductances=conductances,
@@ -657,23 +659,23 @@ def differentiate_nmda_unit(t, y, **kwargs):
     )
 
     # [D-a-iii] コンダクタンスのgの計算（微分）
-    # 式(5)に相当
+    # 式(3-5)に相当
     dgdt = diff_cond
 
     # [D-a-iv] 電流Iの計算
-    # 式(9)に相当
+    # 式(3-9)に相当
     f_mg = calc_block_mg(potentials)
-    # 式(8)に相当
+    # 式(3-8)に相当
     current_nmda = - f_mg * conductances * (potentials - E_NMDA)
-    # 式(7)に相当
+    # 式(3-7)に相当
     current_leak = - G_MAX_LEAK_NMDA * (potentials - E_LEAK)
     # 100から150ミリ秒に注入電流を与える
     current_cue = 1000.0 if t >= 100.0 and t < 150.0 else 0.0
-    # 式(6)に相当
+    # 式(3-6)に相当
     current = current_nmda + current_leak + current_cue
 
     # [D-a-v] 膜電位vの計算（微分）
-    # 式(10)に相当
+    # 式(3-10)に相当
     dvdt = current / C_NMDA
 
     # 微分の値を一つの変数にまとめる
@@ -780,7 +782,7 @@ def calc_exp(dist, strength, width):
     -------
         重みづけ係数
     """
-    # 式(11)に相当
+    # 式(3-11)に相当
     w = strength * np.exp(- (dist**2) / (2 * width**2))
     return w
 
@@ -1027,7 +1029,7 @@ def differentiate_working_memory(t, y, **kwargs):
         y, architecture['split_list'], axis=1)
 
     # [D-a-i] シナプスの影響度eの計算
-    # 式(3)に相当
+    # 式(3-3)に相当
     synapse_effects_ampa = calc_synaptic_effect(
         last_spikes=last_spikes[set_exc, :],
         t=t,
@@ -1048,7 +1050,7 @@ def differentiate_working_memory(t, y, **kwargs):
     )
 
     # [D-a-ii] リガンド依存性コンダクタンスの微分fの計算（微分）
-    # 式(4)に相当
+    # 式(3-4)に相当
     dfdt_ampa = calc_dfdt(
         diff_cond=diff_cond_ampa,
         conductances=conductances_ampa,
@@ -1072,13 +1074,13 @@ def differentiate_working_memory(t, y, **kwargs):
     )
 
     # [D-a-iii] リガンド依存性コンダクタンスgの計算（微分）
-    # 式(5)に相当
+    # 式(3-5)に相当
     dgdt_ampa = diff_cond_ampa
     dgdt_nmda = diff_cond_nmda
     dgdt_gaba = diff_cond_gaba
 
     # [D-a-iv] 電流の計算
-    # 式(14)に相当
+    # 式(3-14)に相当
     current_ampa = - np.sum(
         conductances_ampa * np.tile(
             potentials - E_AMPA, len(set_exc)),
@@ -1110,13 +1112,13 @@ def differentiate_working_memory(t, y, **kwargs):
         * architecture['positions_cue'].reshape(-1, 1)
 
     # それぞれの電流をまとめる
-    # 式(12)に相当
+    # 式(3-12)に相当
     current = \
         current_ampa + current_nmda + current_gaba \
         + current_leak + current_cue + current_noise
 
     # [D-a-v] 膜電位vの計算
-    # 式(13)に相当
+    # 式(3-13)に相当
     dvdt = np.empty_like(potentials)
     dvdt[set_exc, :] = current[set_exc, :] / C_EXC
     dvdt[set_inh, :] = current[set_inh, :] / C_INH
@@ -1340,7 +1342,7 @@ def simulate_hodgkin_huxley(t_eval,
     なお，山﨑・五十嵐（2021）では，delta_t = 10μs = 0.01msでルンゲクッタ
     また「HHモデルをオイラー法で解こうとすると1μs程度は必要と」記載あり
     """
-    y = np.hstack([-65, 0.05, 0.6, 0.32])
+    # y = np.hstack([-65, 0.05, 0.6, 0.32])
     results = {
         'E': [],
         'm': [],
@@ -1363,10 +1365,263 @@ def simulate_hodgkin_huxley(t_eval,
 
 
 # [未掲載] 微分方程式ソルバーのデバッグ関数
-def test_solver():
-    """微分方程式ソルバーのデバッグ関数
+def differentiate_circle(t, y, **kwargs):
+    u, v = y[0, 0], y[1, 0]
+    dydt = np.array([[-v, u]]).T
+    return dydt
+
+
+def simulate_circle(t_eval,
+                    delta_t,
+                    method='euler',
+                    proceedure='original'):
+
+    # [B] 初期値の設定
+    y = np.array([[1.0, 0.0]]).T
+
+    # [C] 結果保存用変数の準備
+    results = {
+        'y': [],
+        't_eval': t_eval,
+    }
+
+    if proceedure == 'original':
+        for t in t_eval:
+            results['y'].append(y)
+
+            # [D] 各時刻における計算
+            y = solve_differential_equation(
+                dydt=differentiate_circle,
+                t=t,
+                y=y,
+                delta_t=delta_t,
+                method=method,
+            )
+        results['y'] = np.hstack(results['y']).T
+
+    elif proceedure == 'exact':
+        results['y'] = np.stack(
+            [np.cos(t_eval),
+             np.sin(t_eval)],
+            axis=1
+        )
+
+    elif proceedure == 'scipy':
+        NotImplementedError()
+
+    else:
+        NotImplementedError()
+
+    return results
+
+
+def differentiate_exponential(t, y, **kwargs):
+    tau = kwargs['tau']
+    dydt = - y / tau
+    return dydt
+
+
+def simulate_exponential(t_eval,
+                         delta_t,
+                         method='euler',
+                         tau=1.0,
+                         y_init=10.0,
+                         proceedure='original',
+                         ):
+    tau = 1.0
+    y_init = 10.0
+    y = y_init
+    results = {
+        'y': [],
+        't_eval': t_eval,
+    }
+
+    if proceedure == 'original':
+        for t in t_eval:
+            results['y'].append(y)
+            y = solve_differential_equation(
+                dydt=differentiate_exponential,
+                t=t,
+                y=y,
+                delta_t=delta_t,
+                method=method,
+                tau=tau,
+            )
+        results['y'] = np.array(results['y']).reshape(-1, 1)
+    elif proceedure == 'exact':
+        results['y'] = np.exp(- t_eval / tau + np.log(y_init)).reshape(-1, 1)
+    elif proceedure == 'scipy':
+        NotImplementedError()
+    else:
+        NotImplementedError()
+
+    return results
+
+
+def differentiate_oscillation_damped(t, y, **kwargs):
+    """減衰振動の微分方程式
+
+    Notes
+    -----
+    xは座標（位置），vは速度
+    kはバネ定数，cは減衰係数，mは質量
     """
-    pass
+    k, c, m = kwargs['k'], kwargs['c'], kwargs['m']
+    x, v = np.split(y, [1], axis=0)
+    dxdt = v
+    dvdt = (-k*x - c*v) / m
+    dydt = np.vstack([dxdt, dvdt])
+    # print('diff', y, x, v, dxdt, dvdt, dydt)
+    return dydt
+
+
+def simulate_oscillation_damped(t_eval,
+                                delta_t,
+                                method='euler',
+                                proceedure='original'
+                                ):
+    """
+    Parameters
+    ----------
+    t_eval :
+    method : str
+        近似解以外にも`method='exact'`を指定することで厳密解を計算可能
+    delta_t :
+
+    Returns
+    -------
+    resutls : dict
+
+    Notes
+    -----
+    減衰振動の厳密計算は以下を参考
+    https://watlab-blog.com/2019/06/10/python-1dof-mck/
+    """
+    # [A] シミュレーションの設定
+    k, c, m = 0.2, 0.1, 1.0
+
+    # [B] 初期値の設定
+    # y = np.zeros((2, 1))
+    y = np.array([[0.1], [0.0]])
+
+    # [C] 結果保存用変数の準備
+    results = {
+        'y': [],
+        't_eval': t_eval,
+    }
+
+    if proceedure == 'original':
+        for t in t_eval:
+            # [D] 各時刻における計算
+            y = solve_differential_equation(
+                dydt=differentiate_oscillation_damped,
+                t=t,
+                y=y,
+                delta_t=delta_t,
+                method=method,
+                k=k,
+                c=c,
+                m=m,
+            )
+            results['y'].append(y)
+        results['y'] = np.hstack(results['y']).T
+
+    elif proceedure == 'exact':
+        state0 = y[0, 0], y[1, 0]
+
+        zeta = c / (2 * np.sqrt(m * k))
+        omega = np.sqrt(k / m)
+        omega_d = omega * np.sqrt(1 - np.power(zeta, 2))
+        sigma = omega_d * zeta
+        X = np.sqrt(np.power(state0[0], 2) \
+                    + np.power((state0[1] + sigma * state0[0])/omega_d, 2))
+        phi = np.arctan((state0[1] + (sigma * state0[0]))/(state0[0] * omega_d))
+
+        theory = np.exp(- sigma * t_eval) * X * np.cos(omega_d * t_eval - phi)
+        results['y'] = theory.reshape(-1, 1)
+
+    elif proceedure == 'scipy':
+        NotImplementedError()
+    else:
+        NotImplementedError()
+
+    return results
+
+
+def test_solver(equation_type,
+                t_max=20,
+                method_list=['euler', 'rk4'],
+                delta_t_list=[1.0, 0.1, 0.001]
+                ):
+    """微分方程式ソルバーのデバッグ関数
+
+    Parameters
+    ----------
+    equation_type : str
+        使用する微分方程式の種類。現在実装されているのは以下の値。
+        'exponential' : 指数関数
+        'circle' : 円軌道
+        'oscillation_dampled' : 減衰振動
+    t_max : float
+    method_list : list of str
+    delta_t_list : list of float
+
+    Returns
+    -------
+        異なる時間幅，計算法でシミュレーションした場合の結果
+    """
+    # 使用する微分方程式の選択
+    funcs_simulate = globals().get('simulate_' + equation_type)
+    if funcs_simulate is None:
+        raise Exception(equation_type + ' is not implemented.')
+    else:
+        print(funcs_simulate, 'was selected...')
+
+    # 結果保存用変数の準備
+    results_all = {
+        'settings': {
+            'method': method_list,
+            'delta_t': delta_t_list,
+        },
+        'exact': None,
+        'original': dict([
+            (method, dict([
+                (str(delta_t), None) for delta_t in delta_t_list]))
+            for method in method_list]),
+        'scipy': {},  # 未実装
+    }
+    print(results_all)
+
+    # 厳密解
+    t_eval = generate_t_eval(
+        t_max=t_max,
+        delta_t=np.min(delta_t_list),
+    )
+    results = funcs_simulate(
+        t_eval=t_eval,
+        delta_t=np.min(delta_t_list),
+        proceedure='exact',
+    )
+    results_all['exact'] = results
+
+    # 自作関数
+    for delta_t, method in itertools.product(delta_t_list, method_list):
+        print('simulation settings: ', method, delta_t)
+        t_eval = generate_t_eval(
+            t_max=t_max,
+            delta_t=delta_t,
+        )
+        results = funcs_simulate(
+            t_eval=t_eval,
+            delta_t=delta_t,
+            method=method,
+            proceedure='original',
+        )
+        results_all['original'][method][str(delta_t)] = results
+
+    # SciPy Solver
+    # TODO: 未実装
+    return results_all
 
 
 # [未掲載] イオンチャネルを用いたワーキングメモリモデル (CPSY TOKYOにて使用)
