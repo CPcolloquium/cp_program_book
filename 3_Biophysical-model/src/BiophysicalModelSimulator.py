@@ -1343,6 +1343,7 @@ def simulate_hodgkin_huxley(t_eval,
     また「HHモデルをオイラー法で解こうとすると1μs程度は必要と」記載あり
     """
     # y = np.hstack([-65, 0.05, 0.6, 0.32])
+    y = np.hstack([0, 0.05, 0.6, 0.32])
     results = {
         'E': [],
         'm': [],
