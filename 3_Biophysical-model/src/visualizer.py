@@ -5,15 +5,15 @@ import pandas as pd
 import matplotlib.pyplot as plt
 
 
-FORMAT_WRITE='svg'
-DIRS_WRITE='./figures/'
-
+FORMAT_WRITE = 'svg'
+DIRS_WRITE = './figures/'
+SAVE_FILE = False
 
 def plot_potentials(t_eval,
                     potentials,
                     time_span=None,
                     title='',
-                    save_file=True):
+                    save_file=SAVE_FILE):
     """複数の膜電位をプロットする関数
 
     Parameters
@@ -65,11 +65,12 @@ def plot_potentials(t_eval,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -78,7 +79,7 @@ def plot_current_and_potential(t_eval,
                                current,
                                potential,
                                title='',
-                               save_file=True):
+                               save_file=SAVE_FILE):
     """膜電位と電流を同時にプロットする関数
 
     Parameters
@@ -115,11 +116,12 @@ def plot_current_and_potential(t_eval,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -128,7 +130,7 @@ def plot_conductance(t_eval,
                      diff_cond,
                      conductances,
                      title='',
-                     save_file=True):
+                     save_file=SAVE_FILE):
     """コンダクタンスをプロットする関数
 
     Parameters
@@ -157,11 +159,12 @@ def plot_conductance(t_eval,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -170,7 +173,7 @@ def plot_raster(t_eval,
                 spikes,
                 time_span=None,
                 title='',
-                save_file=True):
+                save_file=SAVE_FILE):
     """ラスタグラムをプロットする関数
 
     Parameters
@@ -219,11 +222,12 @@ def plot_raster(t_eval,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
 
@@ -254,7 +258,7 @@ def make_jitter_y(df_node):
 
 
 def format_architecture(architecture,
-                        save_file=True):
+                        save_file=SAVE_FILE):
     """可視化用にネットワークアーキテクチャを辞書型からデータフレームに変換する
 
     Parameters
@@ -326,7 +330,7 @@ def plot_network(architecture,
                  display_circle=False,
                  display_weight=True,
                  display_index=False,
-                 save_file=True):
+                 save_file=SAVE_FILE):
     """ネットワークアーキテクチャを可視化
 
     Parameters
@@ -465,17 +469,18 @@ def plot_network(architecture,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
 
 
 def plot_weight(architecture,
-                save_file=True):
+                save_file=SAVE_FILE):
     """重みづけ係数を可視化
 
     Parameters
@@ -494,10 +499,11 @@ def plot_weight(architecture,
         plt.savefig(
             '{}{}.{}'.format(
                 DIRS_WRITE,
-                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S-%f'),
                 FORMAT_WRITE,
             ),
             format=FORMAT_WRITE,
         )
+        plt.close()
     else:
         plt.show()
