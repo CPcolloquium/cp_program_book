@@ -37,6 +37,9 @@ E_NA = 50.0
 E_KCA = -95.0
 V_NA = -56.0
 
+# ホジキン・ハックスリーモデル
+E_REST_HH = -65.0
+
 # 最大コンダクタンス値
 G_MAX_REST = 1.0
 G_MAX_LEAK = 25.0  # ワーキングメモリモデルで使用
@@ -232,7 +235,10 @@ def simulate_lif(t_eval,
     """
     # [B] 初期値の設定
     potential = V_INIT
+
     last_spike = -100
+    current = 0
+    spike = 0
 
     # [C] 結果保存用変数の準備
     results = {
@@ -242,6 +248,11 @@ def simulate_lif(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['potential'].append(potential)
+        results['current'].append(current)
+        results['spike'].append(spike)
+
         # [D] 各時刻における計算
         # [D-a] 各時刻における注入電流の作成
         if t < 30.0:
@@ -267,11 +278,6 @@ def simulate_lif(t_eval,
 
         # [D-d] 直近の発火時刻の更新
         last_spike = t if spike == 1 else last_spike
-
-        # [E] 計算結果を保存
-        results['potential'].append(potential)
-        results['current'].append(current)
-        results['spike'].append(spike)
 
     return results
 
@@ -307,7 +313,7 @@ def differentiate_network(t, y, **kwargs):
     # [D-a-ii] シナプスからの流入電流
     currents_syn = np.matmul(weights, spikes)
 
-    # [D-a-iiii] 神経細胞全体の流入電流
+    # [D-a-iii] 神経細胞全体の流入電流
     currents_ext = currents_cue + currents_syn
 
     # [D-a-iv] 微分方程式の計算
@@ -353,6 +359,10 @@ def simulate_network(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['potentials'].append(potentials)
+        results['spikes'].append(spikes)
+
         # [D] 各時刻における計算
         # [D-a] 微分方程式による更新
         potentials = solve_differential_equation(
@@ -379,10 +389,6 @@ def simulate_network(t_eval,
         last_spikes = np.where(
             spikes == 1, t, last_spikes
         )
-
-        # [E] 計算結果を保存
-        results['potentials'].append(potentials)
-        results['spikes'].append(spikes)
 
     # [F] 返り値の準備
     for key, value in results.items():
@@ -565,6 +571,10 @@ def simulate_conductance(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['diff_cond'].append(diff_cond)
+        results['conductances'].append(conductances)
+
         # [D] 各時刻における計算
         # [D-a] 微分方程式による更新
         y = solve_differential_equation(
@@ -591,12 +601,6 @@ def simulate_conductance(t_eval,
         last_spikes = np.where(
             spikes == 1, t, last_spikes
         )
-
-        # [E] 計算結果を保存
-        results['diff_cond'].append(
-            diff_cond)
-        results['conductances'].append(
-            conductances)
 
     # [F] 返り値の準備
     for key, value in results.items():
@@ -723,6 +727,11 @@ def simulate_nmda_unit(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['diff_cond'].append(diff_cond)
+        results['conductances'].append(conductances)
+        results['potentials'].append(potentials)
+
         # [D] 各時刻における計算
         # 変数を一つにまとめる
         y = np.hstack([diff_cond, conductances, potentials])
@@ -752,11 +761,6 @@ def simulate_nmda_unit(t_eval,
 
         # [D-d] 直近の発火時刻の更新
         last_spikes = np.where(spikes == 1, t, last_spikes)
-
-        # [E] 計算結果を保存
-        results['diff_cond'].append(diff_cond)
-        results['conductances'].append(conductances)
-        results['potentials'].append(potentials)
 
     # [F] 返り値の準備
     for key, value in results.items():
@@ -1172,7 +1176,9 @@ def simulate_working_memory(t_eval,
         num_unit, num_unit_inh))
     conductances_gaba = np.zeros((
         num_unit, num_unit_inh))
-    potentials= V_INIT * np.ones((num_unit, 1))
+    potentials = V_INIT * np.ones((num_unit, 1))
+
+    spikes = np.zeros((num_unit, 1))
     last_spikes = -100 * np.ones((num_unit, 1))
 
     # [C] 結果保存用変数の準備
@@ -1182,6 +1188,10 @@ def simulate_working_memory(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['potentials'].append(potentials)
+        results['spikes'].append(spikes)
+
         # [D] 各時刻における計算
         # 変数を一つにまとめる
         y = np.hstack([
@@ -1234,10 +1244,6 @@ def simulate_working_memory(t_eval,
         # [D-d] 直近の発火時刻の更新
         last_spikes = np.where(spikes == 1, t, last_spikes)
 
-        # [E] 計算結果を保存
-        results['potentials'].append(potentials)
-        results['spikes'].append(spikes)
-
     # [F] 返り値の準備
     for key, value in results.items():
         # 結果の値をNumpy型に整形
@@ -1248,45 +1254,39 @@ def simulate_working_memory(t_eval,
 
 # [コラム] ホジキン・ハックスリーモデル
 def calc_alpha_m(V):
-    # alpha_m = (0.1 * (V + 40)) / (- np.exp(- 0.1 * (V + 40)) + 1)
-    alpha_m = (2.5 - 0.1 * V) / (np.exp(2.5 - 0.1 * V) - 1)
+    alpha_m = (2.5 - 0.1 * (V - E_REST_HH)) / (np.exp(2.5 - 0.1 * (V - E_REST_HH)) - 1.0)
     return alpha_m
 
 def calc_beta_m(V):
-    # beta_m = 4 * np.exp(- (V + 65) / 18)
-    beta_m = 4 * np.exp(- V / 18)
+    beta_m = 4.0 * np.exp(- (V - E_REST_HH) / 18.0)
     return beta_m
 
 def calc_alpha_h(V):
-    # alpha_h = 0.07 * np.exp(- 0.05 * (V + 65))
-    alpha_h = 0.07 * np.exp(- V / 20)
+    alpha_h = 0.07 * np.exp(- (V - E_REST_HH) / 20.0)
     return alpha_h
 
 def calc_beta_h(V):
-    # beta_h = 1 / (np.exp(- 0.1 * (V + 35)) + 1)
-    beta_h = 1 / (np.exp(3 - 0.1 * V) + 1)
+    beta_h = 1.0 / (np.exp(3.0 - 0.1 * (V - E_REST_HH)) + 1.0)
     return beta_h
 
 def calc_alpha_n(V):
-    # alpha_n = (0.01 * (V + 55)) / (- np.exp(- 0.1 * (V + 55)) + 1)
-    alpha_n = (0.1 - 0.01 * V) / (np.exp(1 - 0.1 * V) - 1)
+    alpha_n = (0.1 - 0.01 * (V - E_REST_HH)) / (np.exp(1.0 - 0.1 * (V - E_REST_HH)) - 1.0)
     return alpha_n
 
 def calc_beta_n(V):
-    # beta_n = 0.125 * np.exp(-0.0125 * (V + 65))
-    beta_n = 0.125 * np.exp(- V / 80)
+    beta_n = 0.125 * np.exp(- (V - E_REST_HH) / 80.0)
     return beta_n
 
 def differentiate_hodgkin_huxley(t, y, square=False, **kwargs):
     E_m, m, h, n = y
 
-    C = 1
-    g_bar_leak = 0.3 # ms/cm^2
-    E_leak = 10.6 # mV
-    g_bar_na = 120 # ms/cm^2
-    E_NA = 115 # mV
-    g_bar_k = 36 # ms/cm^2
-    E_k = -12 # mV
+    C = 1.0
+    g_bar_leak = 0.3  # ms/cm^2
+    E_leak = 10.6 + E_REST_HH  # mV
+    g_bar_na = 120.0  # ms/cm^2
+    E_NA = 115.0 + E_REST_HH  # mV
+    g_bar_k = 36.0  # ms/cm^2
+    E_k = -12.0 + E_REST_HH   # mV
 
     # 電流の計算
     current_na = - g_bar_na * np.power(m, 3) * h *(E_m - E_NA)
@@ -1336,21 +1336,35 @@ def simulate_hodgkin_huxley(t_eval,
     - RK4の場合: ステップ幅0.1は厳しい。0.01は必要か
 
     定数値について
-    - 現在は山﨑・五十嵐（2021）の数字を使っている（静止膜電位を0としている）
-    - コメントアウトしている数式は「Juliaで学ぶ計算論的神経科学」を参考にしたもの
-
-    なお，山﨑・五十嵐（2021）では，delta_t = 10μs = 0.01msでルンゲクッタ
-    また「HHモデルをオイラー法で解こうとすると1μs程度は必要と」記載あり
+    - 山﨑・五十嵐（2021）の数字を使っている
+    - なお，山﨑・五十嵐（2021）では，delta_t = 10μs = 0.01msでルンゲクッタ
+    - また「HHモデルをオイラー法で解こうとすると1μs程度は必要と」記載あり
     """
-    # y = np.hstack([-65, 0.05, 0.6, 0.32])
-    y = np.hstack([0, 0.05, 0.6, 0.32])
+
+    # [B] 初期値の設定
+    y = np.hstack([
+        E_REST_HH,
+        calc_alpha_m(E_REST_HH) / (calc_alpha_m(E_REST_HH) + calc_beta_m(E_REST_HH)),
+        calc_alpha_h(E_REST_HH) / (calc_alpha_h(E_REST_HH) + calc_beta_h(E_REST_HH)),
+        calc_alpha_n(E_REST_HH) / (calc_alpha_n(E_REST_HH) + calc_beta_n(E_REST_HH)),
+    ])
+
+    # [C] 結果保存用変数の準備
     results = {
         'E': [],
         'm': [],
         'h': [],
         'n': [],
     }
+
     for step, t in enumerate(t_eval):
+        # [E] 計算結果を保存
+        results['E'].append(y[0])
+        results['m'].append(y[1])
+        results['h'].append(y[2])
+        results['n'].append(y[3])
+
+        # [D] 各時刻における計算
         y = solve_differential_equation(
             dydt=differentiate_hodgkin_huxley,
             t=t,
@@ -1358,10 +1372,6 @@ def simulate_hodgkin_huxley(t_eval,
             delta_t=delta_t,
             method=method,
         )
-        results['E'].append(y[0])
-        results['m'].append(y[1])
-        results['h'].append(y[2])
-        results['n'].append(y[3])
     return results
 
 
@@ -1388,6 +1398,7 @@ def simulate_circle(t_eval,
 
     if proceedure == 'original':
         for t in t_eval:
+            # [E] 計算結果を保存
             results['y'].append(y)
 
             # [D] 各時刻における計算
@@ -1439,7 +1450,11 @@ def simulate_exponential(t_eval,
 
     if proceedure == 'original':
         for t in t_eval:
+            # [E] 計算結果を保存
             results['y'].append(y)
+
+            # [D] 各時刻における計算
+            # [D-a] 微分方程式による更新
             y = solve_differential_equation(
                 dydt=differentiate_exponential,
                 t=t,
@@ -1448,9 +1463,11 @@ def simulate_exponential(t_eval,
                 method=method,
                 tau=tau,
             )
+
         results['y'] = np.array(results['y']).reshape(-1, 1)
     elif proceedure == 'exact':
-        results['y'] = np.exp(- t_eval / tau + np.log(y_init)).reshape(-1, 1)
+        # results['y'] = np.exp(- t_eval / tau + np.log(y_init)).reshape(-1, 1)
+        results['y'] = y_init * np.exp(- t_eval / tau).reshape(-1, 1)
     elif proceedure == 'scipy':
         NotImplementedError()
     else:
@@ -1513,6 +1530,9 @@ def simulate_oscillation_damped(t_eval,
 
     if proceedure == 'original':
         for t in t_eval:
+            # [E] 計算結果を保存
+            results['y'].append(y)
+
             # [D] 各時刻における計算
             y = solve_differential_equation(
                 dydt=differentiate_oscillation_damped,
@@ -1524,7 +1544,6 @@ def simulate_oscillation_damped(t_eval,
                 c=c,
                 m=m,
             )
-            results['y'].append(y)
         results['y'] = np.hstack(results['y']).T
 
     elif proceedure == 'exact':
@@ -1705,6 +1724,9 @@ def simulate_channel_ca(t_eval):
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['ca'].append(ca)
+
         # [D] 各時刻における計算
         # [D-a] 微分方程式による更新
         ca = solve_differential_equation(
@@ -1723,8 +1745,6 @@ def simulate_channel_ca(t_eval):
         # [D-c] 直近の発火時刻の更新
         last_spike = t if spike == 1 else last_spike
 
-        # [E] 計算結果を保存
-        results['ca'].append(ca)
     return results
 
 
@@ -1945,6 +1965,10 @@ def simulate_working_memory_ion(t_eval,
     }
 
     for t in t_eval:
+        # [E] 計算結果を保存
+        results['potentials'].append(potentials)
+        results['spikes'].append(spikes)
+
         # [D] 各時刻における計算
         # 前時刻の膜電位を保存
         potentials_pre = potentials
@@ -1990,10 +2014,6 @@ def simulate_working_memory_ion(t_eval,
         last_spikes = np.where(
             spikes == 1, t, last_spikes
         ).reshape(num_unit, 1)
-
-        # [E] 計算結果を保存
-        results['potentials'].append(potentials)
-        results['spikes'].append(spikes)
 
     # [F] 返り値の準備
     for key, value in results.items():

@@ -1,21 +1,34 @@
+import datetime
+
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
 
-def plot_potentials(t_eval, potentials, time_span=None, title=''):
+FORMAT_WRITE='svg'
+DIRS_WRITE='./figures/'
+
+
+def plot_potentials(t_eval,
+                    potentials,
+                    time_span=None,
+                    title='',
+                    save_file=True):
     """複数の膜電位をプロットする関数
+
     Parameters
     ----------
     t_eval : np.ndarray or list
-        評価の対象となる時刻を保存した一次元の配列。
+        評価の対象となる時刻を保存した一次元の配列
     potentials : np.ndarray or dict
-        膜電位の値を保存した行列。
-        縦が時刻で横がユニット数。
+        膜電位の値を保存した行列
+        縦が時刻で横がユニット
     time_span : None or tuple of float
         キュー電流を流す時間の開始時刻と終了時刻
     title : str
-        フィギュアのタイトル。
+        フィギュアのタイトル
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     colors = ['tab:blue', 'tab:gray', 'tab:cyan', 'black']
     styles = ['solid', 'dashed', 'dotted', 'dashdot']
@@ -47,10 +60,25 @@ def plot_potentials(t_eval, potentials, time_span=None, title=''):
     plt.xlabel('時刻 [msec]')
     plt.ylabel('膜電位')
     plt.title(title)
-    plt.show()
+
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
 
 
-def plot_current_and_potential(t_eval, current, potential, title=''):
+def plot_current_and_potential(t_eval,
+                               current,
+                               potential,
+                               title='',
+                               save_file=True):
     """膜電位と電流を同時にプロットする関数
 
     Parameters
@@ -63,6 +91,8 @@ def plot_current_and_potential(t_eval, current, potential, title=''):
         膜電位の値を保存した一次元の配列
     title : str
         フィギュアのタイトル
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     fig = plt.figure(figsize=(12, 4))
 
@@ -80,10 +110,25 @@ def plot_current_and_potential(t_eval, current, potential, title=''):
     plt.xlabel('時刻')
     fig.suptitle(title)
     fig.tight_layout()
-    plt.show()
+
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
 
 
-def plot_conductance(t_eval, diff_cond, conductances, title=''):
+def plot_conductance(t_eval,
+                     diff_cond,
+                     conductances,
+                     title='',
+                     save_file=True):
     """コンダクタンスをプロットする関数
 
     Parameters
@@ -96,6 +141,8 @@ def plot_conductance(t_eval, diff_cond, conductances, title=''):
         コンダクタンス(g)の値を保存した一次元の配列
     title : str
         フィギュアのタイトル
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     plt.figure(figsize=(12, 2))
     plt.plot(t_eval, diff_cond, label='dgdt (f)', color='black', linestyle='dashed')
@@ -105,10 +152,25 @@ def plot_conductance(t_eval, diff_cond, conductances, title=''):
     plt.xlabel('時刻 [msec]')
     plt.ylabel('コンダクタンス')
     plt.title(title)
-    plt.show()
+
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
 
 
-def plot_raster(t_eval, spikes, time_span=None, title=''):
+def plot_raster(t_eval,
+                spikes,
+                time_span=None,
+                title='',
+                save_file=True):
     """ラスタグラムをプロットする関数
 
     Parameters
@@ -116,12 +178,14 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
     t_eval : np.ndarray or list
         評価の対象となる時刻を保存した一次元の配列
     spikes : np.ndarray
-        スパイク発火をゼロイチとして保存した行列。
-        縦が時刻で横がユニット数。
+        スパイク発火をゼロイチとして保存した行列
+        縦が時刻で横がユニット数
     time_span : None or tuple of float
         キュー電流を流す時間の開始時刻と終了時刻
     title : str
         フィギュアのタイトル
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     num_unit = spikes.shape[1]
 
@@ -150,7 +214,18 @@ def plot_raster(t_eval, spikes, time_span=None, title=''):
         for time_plot in time_span:
             plt.vlines(time_plot, -1, num_unit, colors='black', linestyles='dotted')
     plt.title(title)
-    plt.show()
+
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
 
 
 
@@ -178,12 +253,15 @@ def make_jitter_y(df_node):
     return jitter
 
 
-def format_architecture(architecture):
+def format_architecture(architecture,
+                        save_file=True):
     """可視化用にネットワークアーキテクチャを辞書型からデータフレームに変換する
 
     Parameters
     ----------
     architecture : dict
+        ワーキングメモリモデルのアーキテクチャ
+        `generate_network_architecture()`の返り値
 
     Returns
     -------
@@ -193,6 +271,8 @@ def format_architecture(architecture):
         ネットワークの神経結合に関する情報を保持
     df_column : pd.DataFrame
         ネットワークのカラムに関する情報を保持
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     scale = 0.08
     num_unit = architecture['num_unit']
@@ -246,17 +326,26 @@ def plot_network(architecture,
                  display_circle=False,
                  display_weight=True,
                  display_index=False,
-                 ):
+                 save_file=True):
     """ネットワークアーキテクチャを可視化
 
     Parameters
     ----------
     architecture : dict
+        ワーキングメモリモデルのアーキテクチャ
+        `generate_network_architecture()`の返り値
     size_neuron : int
+        表示される神経細胞（丸や三角）の大きさ
     size_column : int
+        表示されるカラム（四角）の大きさ
     display_circle : bool
+        円周をプロットするかどうか
     display_weight : bool
+        重みづけ係数をプロットするかどうか
     display_index : bool
+        神経細胞の番号をプロットするかどうか
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     df_node, df_edge, df_column = format_architecture(architecture=architecture)
     num_unit = architecture['num_unit']
@@ -372,18 +461,43 @@ def plot_network(architecture,
         )
 
     plt.axis("off")
-    plt.show()
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
 
 
-def plot_weight(architecture):
+def plot_weight(architecture,
+                save_file=True):
     """重みづけ係数を可視化
 
     Parameters
     ----------
     architecture : dict
+        ワーキングメモリモデルのアーキテクチャ
+        `generate_network_architecture()`の返り値
+    save_file : bool
+        フィギュアを保存するかどうか
     """
     plt.figure(figsize=(7, 7))
     plt.pcolor(architecture['weights'], cmap=plt.cm.Blues)
     plt.xlabel("シナプス前細胞の番号")
     plt.ylabel("シナプス後細胞の番号")
-    plt.show()
+    if save_file:
+        plt.savefig(
+            '{}{}.{}'.format(
+                DIRS_WRITE,
+                datetime.datetime.now().strftime('%Y%m%d-%H%M%S'),
+                FORMAT_WRITE,
+            ),
+            format=FORMAT_WRITE,
+        )
+    else:
+        plt.show()
